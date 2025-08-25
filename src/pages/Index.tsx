@@ -51,14 +51,14 @@ const Index = () => {
           <div className="text-center space-y-8">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary font-medium">
               <GraduationCap className="h-4 w-4" />
-              Educational Management Platform
+              Hybrid AI Education
             </div>
             
             <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-primary via-primary-glow to-accent bg-clip-text text-transparent leading-tight">
-              EduCRM
+              exedu CRM
             </h1>
             
-            <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+            <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
               Comprehensive educational management system for modern institutions. 
               Track students, manage courses, and drive educational excellence.
             </p>
@@ -134,48 +134,15 @@ const Index = () => {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20 px-4">
-        <div className="container mx-auto max-w-4xl">
-          <Card className="border-0 shadow-2xl bg-gradient-to-r from-primary/10 via-primary/5 to-accent/10 backdrop-blur-sm">
-            <CardContent className="text-center space-y-8 py-12">
-              <div className="space-y-4">
-                <h3 className="text-3xl md:text-4xl font-bold text-foreground">
-                  Ready to Transform Your Educational Management?
-                </h3>
-                <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                  Join thousands of educational institutions using EduCRM to streamline operations and enhance student success.
-                </p>
-              </div>
-              
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link to="/admin">
-                  <Button size="lg" className="bg-gradient-to-r from-primary to-accent hover:opacity-90 text-lg px-8 py-4">
-                    <TrendingUp className="mr-2 h-5 w-5" />
-                    Start Managing Today
-                  </Button>
-                </Link>
-                <Button size="lg" variant="outline" className="text-lg px-8 py-4 hover:bg-primary/5">
-                  Schedule Demo
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-
       {/* Footer */}
       <footer className="py-8 px-4 border-t bg-card/50">
         <div className="container mx-auto max-w-6xl">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="flex items-center gap-2">
-              <GraduationCap className="h-6 w-6 text-primary" />
-              <span className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                EduCRM
-              </span>
+              <img src="/ex_edu_logo-03.png" alt="" className="h-8 w-full" />
             </div>
             <p className="text-muted-foreground text-center">
-              © 2024 EduCRM. Empowering educational institutions worldwide.
+              © 2025 exedu. Hybrid AI Education.
             </p>
           </div>
         </div>
