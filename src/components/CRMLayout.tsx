@@ -1,17 +1,17 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { 
-  LayoutDashboard, 
-  Users, 
-  BookOpen, 
-  Calendar, 
-  Award, 
-  BarChart3, 
-  Settings, 
+import {
+  LayoutDashboard,
+  Users,
+  BookOpen,
+  Calendar,
+  Award,
+  BarChart3,
+  Settings,
   Bell,
   Search,
   Menu,
-  X
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,7 +39,10 @@ export default function CRMLayout({ children }: CRMLayoutProps) {
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="fixed inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
+          <div
+            className="fixed inset-0 bg-black/50"
+            onClick={() => setSidebarOpen(false)}
+          />
           <div className="fixed left-0 top-0 h-full w-64 bg-card shadow-xl">
             <SidebarContent onClose={() => setSidebarOpen(false)} />
           </div>
@@ -67,7 +70,7 @@ export default function CRMLayout({ children }: CRMLayoutProps) {
           <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
             <div className="relative flex flex-1 items-center">
               <Search className="absolute left-3 h-4 w-4 text-muted-foreground" />
-              <Input 
+              <Input
                 className="pl-9 bg-muted/50 border-0 focus-visible:ring-1"
                 placeholder="Search students, courses..."
               />
@@ -84,16 +87,16 @@ export default function CRMLayout({ children }: CRMLayoutProps) {
                 <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-sm font-semibold text-primary-foreground">
                   A
                 </div>
-                <span className="hidden sm:block text-sm font-medium">Admin</span>
+                <span className="hidden sm:block text-sm font-medium">
+                  Admin
+                </span>
               </div>
             </div>
           </div>
         </header>
 
         {/* Page content */}
-        <main className="py-6 px-4 sm:px-6 lg:px-8">
-          {children}
-        </main>
+        <main className="py-6 px-4 sm:px-6 lg:px-8">{children}</main>
       </div>
     </div>
   );
@@ -106,15 +109,15 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
     <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-card px-6 pb-4 shadow-xl">
       <div className="flex h-16 shrink-0 items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-            <BookOpen className="h-5 w-5 text-primary-foreground" />
-          </div>
-          <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-            EduCRM
-          </h1>
+            <img src="/ex_edu_logo-03.png" alt=""  className="h-8 w-full"/>
         </div>
         {onClose && (
-          <Button variant="ghost" size="sm" onClick={onClose} className="lg:hidden">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="lg:hidden"
+          >
             <X className="h-5 w-5" />
           </Button>
         )}
@@ -129,12 +132,16 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
                   to={item.href}
                   onClick={onClose}
                   className={`group flex gap-x-3 rounded-lg p-3 text-sm font-medium transition-all hover:bg-muted ${
-                    isActive 
-                      ? "bg-gradient-to-r from-primary/10 to-accent/10 text-primary border-l-2 border-primary" 
+                    isActive
+                      ? "bg-gradient-to-r from-primary/10 to-accent/10 text-primary border-l-2 border-primary"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  <item.icon className={`h-5 w-5 shrink-0 ${isActive ? "text-primary" : ""}`} />
+                  <item.icon
+                    className={`h-5 w-5 shrink-0 ${
+                      isActive ? "text-primary" : ""
+                    }`}
+                  />
                   {item.name}
                 </Link>
               </li>
