@@ -43,7 +43,7 @@ export default function CRMLayout({ children }: CRMLayoutProps) {
             className="fixed inset-0 bg-black/50"
             onClick={() => setSidebarOpen(false)}
           />
-          <div className="fixed left-0 top-0 h-full w-64 bg-card shadow-xl">
+          <div className="fixed left-0 top-0 h-full w-64 bg-card ">
             <SidebarContent onClose={() => setSidebarOpen(false)} />
           </div>
         </div>
@@ -106,7 +106,7 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
   const location = useLocation();
 
   return (
-    <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-card px-6 pb-4 shadow-xl">
+    <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-card px-6 pb-4 md:shadow-xl">
       <div className="flex h-16 shrink-0 items-center justify-between">
         <div className="flex items-center gap-2">
             <img src="/ex_edu_logo-03.png" alt=""  className="h-8 w-full"/>
