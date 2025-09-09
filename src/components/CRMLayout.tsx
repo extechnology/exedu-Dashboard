@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { IoIosLogOut } from "react-icons/io";
 import {
   LayoutDashboard,
   Users,
@@ -15,6 +16,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useNavigate } from "react-router-dom";
+
 
 interface CRMLayoutProps {
   children: React.ReactNode;
@@ -33,6 +36,13 @@ const navigation = [
 export default function CRMLayout({ children }: CRMLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate()
+
+  const handleLogout = () => {
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    navigate('/login')
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -91,6 +101,9 @@ export default function CRMLayout({ children }: CRMLayoutProps) {
                   Admin
                 </span>
               </div>
+              <div onClick={handleLogout}>
+                <IoIosLogOut className="h-5 w-5 text-red-600 font-bold" />
+              </div>
             </div>
           </div>
         </header>
@@ -109,7 +122,7 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
     <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-card px-6 pb-4 md:shadow-xl">
       <div className="flex h-16 shrink-0 items-center justify-between">
         <div className="flex items-center gap-2">
-            <img src="/ex_edu_logo-03.png" alt=""  className="h-8 w-full"/>
+          <img src="/ex_edu_logo-03.png" alt="" className="h-8 w-full" />
         </div>
         {onClose && (
           <Button

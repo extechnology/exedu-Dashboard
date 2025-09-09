@@ -1,15 +1,21 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-  Users, 
-  BookOpen, 
-  Award, 
-  BarChart3, 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Users,
+  BookOpen,
+  Award,
+  BarChart3,
   ArrowRight,
   GraduationCap,
   Target,
-  TrendingUp
+  TrendingUp,
 } from "lucide-react";
 
 const Index = () => {
@@ -17,31 +23,31 @@ const Index = () => {
     {
       icon: Users,
       title: "Student Management",
-      description: "Comprehensive student profiles with progress tracking, attendance, and performance analytics."
+      description:
+        "Comprehensive student profiles with progress tracking, attendance, and performance analytics.",
     },
     {
       icon: BookOpen,
       title: "Course Administration",
-      description: "Create, manage, and track courses with detailed curriculum and learning objectives."
+      description:
+        "Create, manage, and track courses with detailed curriculum and learning objectives.",
     },
     {
       icon: Award,
       title: "Certificate Management",
-      description: "Issue, track, and verify digital certificates with automated generation capabilities."
+      description:
+        "Issue, track, and verify digital certificates with automated generation capabilities.",
     },
     {
       icon: BarChart3,
       title: "Analytics Dashboard",
-      description: "Real-time insights into student performance, course effectiveness, and institutional growth."
-    }
+      description:
+        "Real-time insights into student performance, course effectiveness, and institutional growth.",
+    },
   ];
 
-  const stats = [
-    { label: "Active Students", value: "1,247", icon: Users },
-    { label: "Live Courses", value: "23", icon: BookOpen },
-    { label: "Certificates Issued", value: "892", icon: Award },
-    { label: "Success Rate", value: "94%", icon: Target }
-  ];
+
+ 
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-accent/5">
@@ -53,50 +59,28 @@ const Index = () => {
               <GraduationCap className="h-4 w-4" />
               Hybrid AI Education
             </div>
-            
+
             <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-primary via-primary-glow to-accent bg-clip-text text-transparent leading-tight">
               exedu CRM
             </h1>
-            
+
             <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-              Comprehensive educational management system for modern institutions. 
-              Track students, manage courses, and drive educational excellence.
+              Comprehensive educational management system for modern
+              institutions. Track students, manage courses, and drive
+              educational excellence.
             </p>
-            
+
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Link to="/admin">
-                <Button size="lg" className="bg-gradient-to-r from-primary to-accent hover:opacity-90 text-lg px-8 py-4">
+              <Link to="/login">
+                <Button
+                  size="lg"
+                  className="bg-gradient-to-r from-primary to-accent hover:opacity-90 text-lg px-8 py-4"
+                >
                   Access Admin Dashboard
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
-              <Button size="lg" variant="outline" className="text-lg px-8 py-4 hover:bg-primary/5">
-                Learn More
-              </Button>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="py-16 px-4">
-        <div className="container mx-auto max-w-6xl">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            {stats.map((stat) => (
-              <Card key={stat.label} className="border-0 shadow-lg bg-gradient-to-br from-card to-card/50 hover:shadow-xl transition-all duration-300">
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-3xl font-bold text-foreground">{stat.value}</p>
-                      <p className="text-sm text-muted-foreground">{stat.label}</p>
-                    </div>
-                    <div className="h-12 w-12 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-                      <stat.icon className="h-6 w-6 text-primary" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
           </div>
         </div>
       </section>
@@ -106,22 +90,31 @@ const Index = () => {
         <div className="container mx-auto max-w-6xl">
           <div className="text-center space-y-4 mb-16">
             <h2 className="text-4xl md:text-5xl font-bold text-foreground">
-              Powerful Features for 
-              <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent"> Education Management</span>
+              Powerful Features for
+              <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                {" "}
+                Education Management
+              </span>
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Everything you need to manage your educational institution efficiently and effectively.
+              Everything you need to manage your educational institution
+              efficiently and effectively.
             </p>
           </div>
-          
+
           <div className="grid gap-8 md:grid-cols-2">
             {features.map((feature, index) => (
-              <Card key={feature.title} className="group border-0 shadow-lg bg-gradient-to-br from-card to-card/50 hover:shadow-xl transition-all duration-300 hover:-translate-y-2">
+              <Card
+                key={feature.title}
+                className="group border-0 shadow-lg bg-gradient-to-br from-card to-card/50 hover:shadow-xl transition-all duration-300 hover:-translate-y-2"
+              >
                 <CardHeader>
                   <div className="h-12 w-12 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                     <feature.icon className="h-6 w-6 text-primary" />
                   </div>
-                  <CardTitle className="text-xl font-bold text-foreground">{feature.title}</CardTitle>
+                  <CardTitle className="text-xl font-bold text-foreground">
+                    {feature.title}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <CardDescription className="text-muted-foreground text-base leading-relaxed">
