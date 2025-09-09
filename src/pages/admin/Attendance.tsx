@@ -23,6 +23,10 @@ import {
 import useStudentProfile from "@/hooks/useStudentProfile";
 import useAttendance from "@/hooks/useAttendance";
 import useCourse from "@/hooks/useCourse";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
+
+
 
 type Status = "Present" | "Absent" | "Late" | null;
 
@@ -31,10 +35,10 @@ const Attendance = () => {
   const [selectedCourse, setSelectedCourse] = useState<string>("all");
   const { studentProfile, loading, error } = useStudentProfile();
   const { course, loading: courseLoading, error: courseError } = useCourse();
-  // console.log(studentProfile, "student profile");
+  console.log(studentProfile, "student profile");
   const CourseTitles = Array.isArray(course) ? course.map((c) => c.title) : [];
 
-  // console.log(CourseTitles, "coursesss");
+  console.log(CourseTitles, "coursesss");
 
   const selectedCourseObj = Array.isArray(course)
     ? course.find((c: any) => c.title === selectedCourse)
@@ -66,7 +70,15 @@ const Attendance = () => {
       ))
     : [];
 
-  // console.log(CourseOptions, "CourseOptions");
+    const firstCourseValue =
+      CourseOptions.length > 0 ? (CourseOptions[0].props.value as string) : "";
+
+    useEffect(() => {
+      if (CourseOptions.length > 0) {
+        setSelectedCourse(CourseOptions[0].props.value as string);
+      }
+    }, [CourseOptions]);
+
 
   const filteredStudents = useMemo(() => {
     if (selectedCourse === "all") return accessibleStudents;
@@ -74,7 +86,6 @@ const Attendance = () => {
     return accessibleStudents.filter((s: any) => s.course === selectedCourse);
   }, [accessibleStudents, selectedCourse]);
 
-  // console.log(filteredStudents, "filteredStudents");
 
   function formatCourseName(course: string | null) {
     if (!course) return "No Course";
@@ -90,7 +101,6 @@ const Attendance = () => {
     if (records.length > 0) {
       const next: Record<string, Status> = {};
       records.forEach((r) => {
-        // normalize API -> UI
         if (r.status === "present") next[String(r.student)] = "Present";
         else if (r.status === "absent") next[String(r.student)] = "Absent";
         else if (r.status === "late") next[String(r.student)] = "Late";
@@ -115,7 +125,6 @@ const Attendance = () => {
       if (st === "Present") present++;
       else if (st === "Late") late++;
       else if (st === "Absent") absent++;
-      // if null → don't count them
     }
     const attendanceRate = total ? Math.round((present / total) * 100) : 0;
     return { totalStudents: total, present, absent, late, attendanceRate };
@@ -144,6 +153,55 @@ const Attendance = () => {
       });
       return next;
     });
+  };
+
+
+
+  const handleGenerateReport = () => {
+    if (!filteredStudents.length) {
+      alert("No students available for report");
+      return;
+    }
+
+    // Build rows for Excel
+    const data = filteredStudents.map((student: any) => {
+      const status = statusMap[student.unique_id] || "Not Marked";
+      return {
+        Name: student.name,
+        Course: formatCourseName(student.course),
+        Status: status,
+        Date: selectedDate.toLocaleDateString(),
+      };
+    });
+
+    data.push({
+      Name: "----",
+      Course: "Summary",
+      Status: `Present: ${stats.present}, Absent: ${stats.absent}, Late: ${stats.late}`,
+      Date: "",
+    });
+
+    // Create worksheet
+    const worksheet = XLSX.utils.json_to_sheet(data);
+
+    // Create workbook
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Attendance Report");
+
+    // Export as Excel file
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
+
+    const blob = new Blob([excelBuffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+
+    saveAs(
+      blob,
+      `Attendance_Report_${selectedDate.toISOString().split("T")[0]}.xlsx`
+    );
   };
 
   return (
@@ -299,10 +357,7 @@ const Attendance = () => {
                     <SelectTrigger className="w-full sm:w-[240px]">
                       <SelectValue placeholder="Filter by course" />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Courses</SelectItem>
-                      {CourseOptions}
-                    </SelectContent>
+                    <SelectContent>{CourseOptions}</SelectContent>
                   </Select>
                 </div>
               </div>
@@ -445,6 +500,7 @@ const Attendance = () => {
             <Button
               variant="outline"
               className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-accent/5 hover:border-accent"
+              onClick={handleGenerateReport}
             >
               <Download className="h-6 w-6" />
               <span>Generate Report</span>

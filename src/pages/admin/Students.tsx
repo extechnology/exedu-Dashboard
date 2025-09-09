@@ -209,7 +209,6 @@ const Students = () => {
     setIsSaving(true);
 
     try {
-      // Prepare the data for API call
       const updateData = {
         name: editFormData.name,
         email: editFormData.email,
@@ -239,11 +238,6 @@ const Students = () => {
       const updatedStudent = response.data;
 
       toast.success("Student profile updated successfully!");
-
-      // Refresh the student list
-      // if (refetch) {
-      //   await refetch();
-      // }
 
       closeEditModal();
     } catch (error: any) {
@@ -440,8 +434,12 @@ const Students = () => {
                     </DropdownMenuItem>
 
                     <DropdownMenuItem>
-                      <Mail className="h-4 w-4 mr-2" />
-                      Send Message
+                      <Button asChild variant="outline">
+                        <a href={`mailto:${student.email}`}>
+                          <Mail className="h-4 w-4 mr-2" />
+                          Send Message
+                        </a>
+                      </Button>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -788,9 +786,11 @@ const Students = () => {
                   <Edit className="h-4 w-4 mr-2" />
                   Edit Profile
                 </Button>
-                <Button variant="outline">
-                  <Mail className="h-4 w-4 mr-2" />
-                  Send Message
+                <Button asChild variant="outline">
+                  <a href={`mailto:${selectedStudent.email}`}>
+                    <Mail className="h-4 w-4 mr-2" />
+                    Send Message
+                  </a>
                 </Button>
               </div>
             </div>

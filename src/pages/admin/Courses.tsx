@@ -11,9 +11,6 @@ import {
   MoreHorizontal,
   Users,
   Clock,
-  Calendar,
-  BookOpen,
-  Star,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -23,12 +20,27 @@ import {
 } from "@/components/ui/dropdown-menu";
 import useCourse from "@/hooks/useCourse";
 import AddCourseModal from "@/components/ui/AddCourseModal";
+import CourseDetailsModal from "@/components/ui/courseDetailsmodal";
+import useStudentProfile from "@/hooks/useStudentProfile";
+
+
+// Map Django choice keys to display labels
+const courseLabelMap: Record<string, string> = {
+  ai_advanced_digital_marketing: "AI Advanced Digital Marketing",
+  graphic_design: "Graphic Design",
+  ui_ux_design: "UI/UX Design",
+  web_and_app_development: "Web & App Development",
+  video_editing: "Video Editing",
+  robotics: "Robotics",
+};
 
 const Courses = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const { course } = useCourse();
   const [showModal, setShowModal] = useState(false);
-  console.log(course, "course");
+  const [selectedCourse, setSelectedCourse] = useState<any>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const { studentProfile } = useStudentProfile();
 
   function formatCourseName(course: string | null) {
     if (!course) return "No Course";
@@ -39,13 +51,31 @@ const Courses = () => {
   }
 
   const filteredCourses = Array.isArray(course)
-    ? course.filter(
-        (course) =>
-          course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          course.instructor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          course.description.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+    ? course.filter((course) => {
+        const search = searchTerm.toLowerCase();
+        return (
+          (course.title || "").toLowerCase().includes(search) ||
+          (course.tutor || "").toLowerCase().includes(search) ||
+          (course.description || "").toLowerCase().includes(search)
+        );
+      })
     : [];
+
+  // Get only active users
+  const activeUsers = Array.isArray(studentProfile)
+    ? studentProfile.filter((p) => p.can_access_profile)
+    : [];
+
+  // Group active users by course
+  const studentsByCourse: Record<string, number> = activeUsers.reduce(
+    (acc, user) => {
+      const courseName = user.course || "No Course"; // API gives label
+      acc[courseName] = (acc[courseName] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>
+  );
+
 
   const getStatusBadge = (status: string) => {
     const variants = {
@@ -145,7 +175,12 @@ const Courses = () => {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setSelectedCourse(course);
+                        setDetailsOpen(true);
+                      }}
+                    >
                       <Eye className="h-4 w-4 mr-2" />
                       View Details
                     </DropdownMenuItem>
@@ -153,10 +188,10 @@ const Courses = () => {
                       <Edit className="h-4 w-4 mr-2" />
                       Edit Course
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
+                    {/* <DropdownMenuItem>
                       <Users className="h-4 w-4 mr-2" />
                       Manage Students
-                    </DropdownMenuItem>
+                    </DropdownMenuItem> */}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -166,7 +201,7 @@ const Courses = () => {
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Instructor</span>
-                  <span className="font-medium">{course.instructor}</span>
+                  <span className="font-medium">{course.tutor}</span>
                 </div>
 
                 <div className="flex items-center justify-between text-sm">
@@ -181,17 +216,17 @@ const Courses = () => {
                   <span className="text-muted-foreground">Students</span>
                   <span className="font-medium flex items-center gap-1">
                     <Users className="h-3 w-3" />
-                    {course.students}
+                    {studentsByCourse[courseLabelMap[course.title]] || 0}
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between text-sm">
+                {/* <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Start Date</span>
                   <span className="font-medium flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
                     {new Date(course.startDate).toLocaleDateString()}
                   </span>
-                </div>
+                </div> */}
 
                 {/* {course.rating > 0 && (
                   <div className="flex items-center justify-between text-sm">
@@ -209,7 +244,14 @@ const Courses = () => {
                   {course.price}
                 </div> */}
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedCourse(course);
+                      setDetailsOpen(true);
+                    }}
+                  >
                     <Eye className="h-4 w-4 mr-1" />
                     View
                   </Button>
@@ -226,6 +268,13 @@ const Courses = () => {
 
       <div>
         <AddCourseModal open={showModal} onClose={() => setShowModal(false)} />
+      </div>
+      <div>
+        <CourseDetailsModal
+          open={detailsOpen}
+          onClose={() => setDetailsOpen(false)}
+          course={selectedCourse}
+        />
       </div>
 
       {filteredCourses.length === 0 && (
