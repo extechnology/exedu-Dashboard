@@ -8,7 +8,7 @@ import {
   Calendar,
   Award,
   BarChart3,
-  Settings,
+  // Settings,
   Bell,
   Search,
   Menu,
@@ -17,7 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
-
+import LogoutModal from "./ui/logoutModal";
 
 interface CRMLayoutProps {
   children: React.ReactNode;
@@ -30,18 +30,19 @@ const navigation = [
   { name: "Attendance", href: "/admin/attendance", icon: Calendar },
   { name: "Certificates", href: "/admin/certificates", icon: Award },
   { name: "Analytics", href: "/admin/analytics", icon: BarChart3 },
-  { name: "Settings", href: "/admin/settings", icon: Settings },
+  // { name: "Settings", href: "/admin/settings", icon: Settings },
 ];
 
 export default function CRMLayout({ children }: CRMLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
-  const navigate = useNavigate()
+  const navigate = useNavigate();
+  const [isLogoutOpen, setLogoutOpen] = useState(false);
 
   const handleLogout = () => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    navigate('/login')
+    localStorage.clear();
+    navigate("/login");
+    setLogoutOpen(false);
   };
 
   return (
@@ -101,8 +102,13 @@ export default function CRMLayout({ children }: CRMLayoutProps) {
                   Admin
                 </span>
               </div>
-              <div onClick={handleLogout}>
+              <div onClick={() => setLogoutOpen(true)} className="cursor-pointer">
                 <IoIosLogOut className="h-5 w-5 text-red-600 font-bold" />
+                <LogoutModal
+                  isOpen={isLogoutOpen}
+                  onClose={() => setLogoutOpen(false)}
+                  onConfirm={handleLogout}
+                />
               </div>
             </div>
           </div>

@@ -53,7 +53,7 @@ const Dashboard = () => {
     },
     {
       name: "Certificates Issued",
-      value: "892",
+      value: "4",
       icon: GraduationCap,
       change: "+45",
       trend: "up",
@@ -73,6 +73,8 @@ const Dashboard = () => {
     ? studentProfile.slice(0, 5)
     : [];
 
+
+    console.log("recentStudents", recentStudents);
 
   const upcomingTasks = [
     {
@@ -148,9 +150,22 @@ const Dashboard = () => {
                   className="flex items-center justify-between p-4 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-sm font-semibold text-primary-foreground">
-                      {student?.name?.charAt(0) ?? "?"}
-                    </div>
+                    {student?.profile_image ? (
+                      <div>
+                        <img
+                          src={`${import.meta.env.VITE_MEDIA_BASE_URL}${
+                            student?.profile_image
+                          }`}
+                          className="h-11 w-11 rounded-full object-cover"
+                          alt="profile"
+                        />
+                      </div>
+                    ) : (
+                      <div className="h-11 w-11 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-sm font-semibold text-primary-foreground">
+                        {student?.name?.charAt(0) ?? "?"}
+                      </div>
+                    )}
+
                     <div>
                       <p className="font-medium text-foreground">
                         {student?.name}
@@ -160,6 +175,7 @@ const Dashboard = () => {
                       </p>
                     </div>
                   </div>
+
                   <div className="flex items-center gap-3">
                     <div className="text-right">
                       <Badge
