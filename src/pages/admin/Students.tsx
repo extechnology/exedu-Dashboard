@@ -45,10 +45,11 @@ import {
 import useStudentProfile from "@/hooks/useStudentProfile";
 import { toast } from "sonner";
 import axiosInstance from "@/api/axiosInstance";
+import AddStudentModal from "@/components/ui/addStudentModal";
 
 interface StudentProfileData {
   unique_id: string;
-  profile_image: string | null;
+  profile_image: File | null;
   name: string;
   email: string;
   phone_number: string | null;
@@ -84,11 +85,14 @@ interface NormalizedStudent {
   progress: number;
   attendance: number;
   avatar: string;
-  profileImage: string | null;
+  profileImage: string | File | null;
+  payment_completed: boolean;
+  paid_amount: number | null;
 }
 
 type FilterType = "all" | "active" | "completed" | "pending";
 type StatusVariant = "Active" | "Completed" | "Pending";
+// type PaymentStatusVariant = "Completed" | "Pending" | "Failed";
 
 const Students = () => {
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -96,13 +100,18 @@ const Students = () => {
   const [selectedStudent, setSelectedStudent] =
     useState<StudentProfileData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [showModal, setShowModal] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
   const [editFormData, setEditFormData] = useState<StudentProfileData | null>(
     null
   );
   const [isSaving, setIsSaving] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
 
   const { studentProfile, loading, error } = useStudentProfile();
+  const [imagePreview, setImagePreview] = useState<string>("");
+
+
 
   console.log("studentProfile", studentProfile);
 
@@ -110,23 +119,27 @@ const Students = () => {
   const students = useMemo((): NormalizedStudent[] => {
     if (!studentProfile || !Array.isArray(studentProfile)) return [];
 
-    return studentProfile
-      .filter((s: StudentProfileData) => s.can_access_profile === true)
-      .map(
-        (s: StudentProfileData): NormalizedStudent => ({
-          id: s.unique_id,
-          name: s.name || "Unnamed",
-          email: s.email || "N/A",
-          phone: s.phone_number || "N/A",
-          course: s.course || "Not Assigned",
-          joinDate: s.created_at,
-          status: s.is_public ? "Active" : "Pending",
-          progress: s.payment_completed ? 100 : 0,
-          attendance: 0,
-          avatar: s.name ? s.name.slice(0, 2).toUpperCase() : "ST",
-          profileImage: s.profile_image,
-        })
-      );
+    return (
+      studentProfile
+        // .filter((s: StudentProfileData) => s.can_access_profile === true)
+        .map(
+          (s: StudentProfileData): NormalizedStudent => ({
+            id: s.unique_id,
+            name: s.name || "Unnamed",
+            email: s.email || "N/A",
+            phone: s.phone_number || "N/A",
+            course: s.course || "Not Assigned",
+            joinDate: s.created_at,
+            status: s.can_access_profile ? "Active" : "Pending",
+            progress: s.payment_completed ? 100 : 0,
+            attendance: 0,
+            avatar: s.name ? s.name.slice(0, 2).toUpperCase() : "ST",
+            profileImage: s.profile_image,
+            payment_completed: s.payment_completed,
+            paid_amount: s.paid_amount,
+          })
+        )
+    );
   }, [studentProfile]);
 
   // 🔍 Filter logic
@@ -144,12 +157,37 @@ const Students = () => {
 
   const getStatusBadge = (status: string): string => {
     const variants: Record<StatusVariant, string> = {
-      Active: "bg-green-500 text-white",
+      Active: "bg-blue-500 text-white",
       Completed: "bg-blue-500 text-white",
-      Pending: "bg-yellow-500 text-black",
+      Pending: "bg-orange-500 text-black",
     };
     return variants[status as StatusVariant] || "bg-gray-300 text-black";
   };
+
+  const getPaymentStatusBadge = (
+    paymentCompleted: boolean,
+    paidAmount?: number
+  ): string => {
+    if (paymentCompleted) {
+      return "bg-green-500 text-white";
+    } else if (paidAmount && paidAmount > 0) {
+      return "bg-yellow-500 text-black";
+    } else {
+      return "bg-red-500 text-white";
+    }
+  };
+
+  useEffect(() => {
+    if (editFormData?.profile_image) {
+      if (typeof editFormData.profile_image === "string") {
+        setImagePreview(editFormData.profile_image);
+      } else if (editFormData.profile_image instanceof File) {
+        setImagePreview(URL.createObjectURL(editFormData.profile_image));
+      }
+    } else {
+      setImagePreview("");
+    }
+  }, [editFormData]);
 
   const getFilteredCount = (filterStatus: string): number => {
     if (filterStatus === "all") return students.length;
@@ -209,61 +247,69 @@ const Students = () => {
     setIsSaving(true);
 
     try {
-      const updateData = {
-        name: editFormData.name,
-        email: editFormData.email,
-        phone_number: editFormData.phone_number || null,
-        profile_image: editFormData.profile_image || null,
-        secondary_school: editFormData.secondary_school || null,
-        secondary_year: editFormData.secondary_year || null,
-        university: editFormData.university || null,
-        university_major: editFormData.university_major || null,
-        university_year: editFormData.university_year || null,
-        career_objective: editFormData.career_objective || null,
-        skills: editFormData.skills || null,
-        experience: editFormData.experience || null,
-        interests: editFormData.interests || null,
-        is_public: editFormData.is_public,
-        can_access_profile: editFormData.can_access_profile,
-        bach_number: editFormData.bach_number || null,
-        payment_completed: editFormData.payment_completed,
-        paid_amount: editFormData.paid_amount || null,
-      };
+      const formData = new FormData();
+
+      formData.append("name", editFormData.name);
+      formData.append("email", editFormData.email);
+      if (editFormData.phone_number)
+        formData.append("phone_number", editFormData.phone_number);
+
+      if (editFormData.profile_image instanceof File) {
+        formData.append("profile_image", editFormData.profile_image); // file upload
+      }
+
+      if (editFormData.secondary_school)
+        formData.append("secondary_school", editFormData.secondary_school);
+      if (editFormData.secondary_year)
+        formData.append("secondary_year", editFormData.secondary_year);
+      if (editFormData.university)
+        formData.append("university", editFormData.university);
+      if (editFormData.university_major)
+        formData.append("university_major", editFormData.university_major);
+      if (editFormData.university_year)
+        formData.append("university_year", editFormData.university_year);
+
+      if (editFormData.career_objective)
+        formData.append("career_objective", editFormData.career_objective);
+      if (editFormData.skills) formData.append("skills", editFormData.skills);
+      if (editFormData.experience)
+        formData.append("experience", editFormData.experience);
+      if (editFormData.interests)
+        formData.append("interests", editFormData.interests);
+
+      formData.append("is_public", String(editFormData.is_public));
+      formData.append(
+        "can_access_profile",
+        String(editFormData.can_access_profile)
+      );
+
+      if (editFormData.bach_number)
+        formData.append("bach_number", editFormData.bach_number);
+      formData.append(
+        "payment_completed",
+        String(editFormData.payment_completed)
+      );
+      if (editFormData.paid_amount !== null)
+        formData.append("paid_amount", String(editFormData.paid_amount));
 
       const response = await axiosInstance.patch(
         `/student/profile/${editFormData.unique_id}/`,
-        updateData
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
       );
 
-      const updatedStudent = response.data;
-
       toast.success("Student profile updated successfully!");
-
       closeEditModal();
     } catch (error: any) {
       console.error("Error updating student:", error);
-
-      let errorMessage = "Failed to update student profile";
-
-      if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error.response?.data?.detail) {
-        errorMessage = error.response.data.detail;
-      } else if (error.response?.data) {
-        // Handle validation errors
-        const errors = Object.values(error.response.data).flat();
-        if (errors.length > 0) {
-          errorMessage = errors[0] as string;
-        }
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-
-      toast.error(errorMessage);
+      toast.error("Failed to update student profile");
     } finally {
       setIsSaving(false);
     }
   };
+
 
   const closeModal = (): void => {
     setIsModalOpen(false);
@@ -278,7 +324,7 @@ const Students = () => {
 
   const handleInputChange = (
     field: keyof StudentProfileData,
-    value: string | boolean | number
+    value: string | boolean | number | File | null
   ): void => {
     if (editFormData) {
       setEditFormData({
@@ -328,10 +374,14 @@ const Students = () => {
             Manage and track all student information and progress.
           </p>
         </div>
-        <Button className="bg-gradient-to-r from-primary to-accent hover:opacity-90">
+
+        {/* <Button
+          onClick={() => setShowModal(true)}
+          className="bg-gradient-to-r from-primary to-accent hover:opacity-90"
+        >
           <Plus className="h-4 w-4 mr-2" />
           Add New Student
-        </Button>
+        </Button> */}
       </div>
 
       {/* Search and Filters */}
@@ -389,8 +439,9 @@ const Students = () => {
             className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-card to-card/50"
           >
             <CardHeader className="pb-4">
-              <div className="flex items-start justify-between">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
+                  {/* Profile image / avatar */}
                   {student.profileImage ? (
                     <img
                       src={`${import.meta.env.VITE_MEDIA_BASE_URL}${
@@ -405,13 +456,30 @@ const Students = () => {
                     </div>
                   )}
 
-                  <div>
+                  {/* Name and both status badges */}
+                  <div className="flex flex-col">
                     <CardTitle className="text-lg">{student.name}</CardTitle>
-                    <Badge className={getStatusBadge(student.status)}>
-                      {student.status}
-                    </Badge>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge className={`${getStatusBadge(student.status)}`}>
+                        {student.status}
+                      </Badge>
+                      <span
+                        className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-medium ${getPaymentStatusBadge(
+                          student.payment_completed,
+                          student.paid_amount
+                        )}`}
+                      >
+                        {student.payment_completed
+                          ? "Paid"
+                          : student.paid_amount > 0
+                          ? "Partial"
+                          : "Unpaid"}
+                      </span>
+                    </div>
                   </div>
                 </div>
+
+                {/* Right side: dropdown menu only */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="sm">
@@ -432,7 +500,6 @@ const Students = () => {
                       <Edit className="h-4 w-4 mr-2" />
                       Edit Student
                     </DropdownMenuItem>
-
                     <DropdownMenuItem>
                       <Button asChild variant="outline">
                         <a href={`mailto:${student.email}`}>
@@ -527,10 +594,10 @@ const Students = () => {
               {selectedStudent?.name || "Student Profile"}
               <Badge
                 className={getStatusBadge(
-                  selectedStudent?.is_public ? "Active" : "Pending"
+                  selectedStudent?.can_access_profile ? "Active" : "Pending"
                 )}
               >
-                {selectedStudent?.is_public ? "Active" : "Pending"}
+                {selectedStudent?.can_access_profile ? "Active" : "Pending"}
               </Badge>
             </DialogTitle>
           </DialogHeader>
@@ -805,7 +872,11 @@ const Students = () => {
             <DialogTitle className="text-2xl font-bold flex items-center gap-3">
               {editFormData?.profile_image ? (
                 <img
-                  src={editFormData.profile_image}
+                  src={
+                    typeof editFormData.profile_image === "string"
+                      ? editFormData.profile_image
+                      : URL.createObjectURL(editFormData.profile_image)
+                  }
                   alt={editFormData.name}
                   className="h-12 w-12 rounded-full object-cover"
                   onError={(e) => {
@@ -821,10 +892,10 @@ const Students = () => {
               Edit Student Profile
               <Badge
                 className={getStatusBadge(
-                  editFormData?.is_public ? "Active" : "Pending"
+                  editFormData?.can_access_profile ? "Active" : "Pending"
                 )}
               >
-                {editFormData?.is_public ? "Active" : "Pending"}
+                {editFormData?.can_access_profile ? "Active" : "Pending"}
               </Badge>
             </DialogTitle>
           </DialogHeader>
@@ -883,8 +954,8 @@ const Students = () => {
                       disabled={isSaving}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium flex items-center gap-2">
+                  <div className="space-y-2 content-end">
+                    <Label className="text-sm font-medium flex items-center content-center gap-2">
                       <Switch
                         checked={editFormData.is_public}
                         onCheckedChange={(checked) =>
@@ -896,6 +967,21 @@ const Students = () => {
                     </Label>
                     <p className="text-xs text-muted-foreground">
                       Make profile visible to others
+                    </p>
+                  </div>
+                  <div className="space-y-2 content-center">
+                    <Label className="text-sm font-medium flex items-center gap-2">
+                      <Switch
+                        checked={editFormData.can_access_profile}
+                        onCheckedChange={(checked) =>
+                          handleInputChange("can_access_profile", checked)
+                        }
+                        disabled={isSaving}
+                      />
+                      Grand Permission
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Give students full access to profile
                     </p>
                   </div>
                 </CardContent>
@@ -911,37 +997,70 @@ const Students = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center gap-4">
-                    {editFormData.profile_image ? (
+                    {/* Image Preview */}
+                    {imagePreview ? (
                       <img
-                        src={editFormData.profile_image}
+                        src={imagePreview}
                         alt="Profile"
                         className="h-20 w-20 rounded-full object-cover"
                         onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = "none";
+                          (e.target as HTMLImageElement).style.display = "none";
                         }}
                       />
                     ) : (
                       <div className="h-20 w-20 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-xl font-semibold text-primary-foreground">
-                        {editFormData.name?.slice(0, 2).toUpperCase() || "ST"}
+                        {editFormData?.name?.slice(0, 2).toUpperCase() || "ST"}
                       </div>
                     )}
+
+                    {/* Upload Field */}
                     <div className="space-y-2 flex-1">
                       <Label
-                        htmlFor="profile_image"
+                        htmlFor="profile-image-upload"
                         className="text-sm font-medium"
                       >
-                        Profile Image URL
+                        Profile Image
                       </Label>
+
+                      {/* Hidden File Input */}
                       <Input
-                        id="profile_image"
-                        value={editFormData.profile_image || ""}
-                        onChange={(e) =>
-                          handleInputChange("profile_image", e.target.value)
-                        }
-                        placeholder="Enter image URL"
+                        id="profile-image-upload"
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setImageFile(file);
+                            setEditFormData((prev) =>
+                              prev ? { ...prev, profile_image: file } : null
+                            );
+
+                            const reader = new FileReader();
+                            reader.onload = (ev) => {
+                              setImagePreview(ev.target?.result as string);
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="hidden"
                         disabled={isSaving}
                       />
+
+                      {/* Button to trigger file input */}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() =>
+                          document
+                            .getElementById("profile-image-upload")
+                            ?.click()
+                        }
+                        disabled={isSaving}
+                        className="w-full"
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        {imagePreview ? "Change Image" : "Upload Image"}
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
@@ -1237,6 +1356,7 @@ const Students = () => {
           )}
         </DialogContent>
       </Dialog>
+      <AddStudentModal open={showModal} onClose={() => setShowModal(false)} />
     </div>
   );
 };

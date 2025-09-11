@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/select";
 import axiosInstance from "@/api/axiosInstance";
 import { toast } from "sonner";
-
+import { Image as ImageIcon, Loader2 } from "lucide-react";
 
 interface AddCourseModalProps {
   open: boolean;
@@ -53,7 +53,7 @@ export default function AddCourseModal({
     price: "",
     image: null as File | null,
   });
-
+  const [imagePreview, setImagePreview] = useState<string>("");
   const [loading, setLoading] = useState(false);
 
   const handleChange = (
@@ -67,30 +67,33 @@ export default function AddCourseModal({
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFormData({ ...formData, image: e.target.files[0] });
+    const file = e.target.files?.[0];
+    if (file) {
+      setFormData({ ...formData, image: file });
+      const reader = new FileReader();
+      reader.onload = () => setImagePreview(reader.result as string);
+      reader.readAsDataURL(file);
     }
   };
 
   const handleSubmit = async () => {
+    if (!formData.title) return toast.error("Please select a course title");
     setLoading(true);
     try {
       const data = new FormData();
       Object.entries(formData).forEach(([key, value]) => {
-        if (value !== null && value !== "") {
-          data.append(key, value as any);
-        }
+        if (value !== null && value !== "") data.append(key, value as any);
       });
 
       await axiosInstance.post("/course/", data, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      if (onCourseAdded) onCourseAdded();
-      onClose();
       toast.success("Course added successfully");
+      onCourseAdded?.();
+      onClose();
     } catch (error) {
-      console.error("Error adding course:", error);
+      console.error(error);
       toast.error("Failed to add course");
     } finally {
       setLoading(false);
@@ -99,16 +102,26 @@ export default function AddCourseModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg bg-white dark:bg-card/80 rounded-xl shadow-xl overflow-hidden">
         <DialogHeader>
-          <DialogTitle>Add New Course</DialogTitle>
+          <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+            Add New Course
+            {imagePreview && (
+              <img
+                src={imagePreview}
+                alt="Preview"
+                className="h-10 w-10 rounded-md object-cover"
+              />
+            )}
+          </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div>
+        <div className="space-y-5 px-4 py-2">
+          {/* Course Title */}
+          <div className="space-y-1">
             <Label>Course Title</Label>
             <Select onValueChange={handleSelect} value={formData.title}>
-              <SelectTrigger>
+              <SelectTrigger className="w-full border bg-muted/50">
                 <SelectValue placeholder="Select a course" />
               </SelectTrigger>
               <SelectContent>
@@ -121,66 +134,106 @@ export default function AddCourseModal({
             </Select>
           </div>
 
-          <div>
+          {/* Subtitle */}
+          <div className="space-y-1">
             <Label>Sub Title</Label>
             <Input
               name="sub_title"
               value={formData.sub_title}
               onChange={handleChange}
+              placeholder="Enter course subtitle"
             />
           </div>
 
-          <div>
+          {/* Description */}
+          <div className="space-y-1">
             <Label>Description</Label>
             <Textarea
               name="description"
               value={formData.description}
               onChange={handleChange}
+              placeholder="Course description..."
+              rows={4}
             />
           </div>
 
-          <div>
-            <Label>Duration</Label>
-            <Input
-              name="duration"
-              placeholder="e.g. 6 months"
-              value={formData.duration}
-              onChange={handleChange}
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <Label>Duration</Label>
+              <Input
+                name="duration"
+                placeholder="e.g. 6 months"
+                value={formData.duration}
+                onChange={handleChange}
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label>Tutor</Label>
+              <Input
+                name="tutor"
+                placeholder="Tutor name"
+                value={formData.tutor}
+                onChange={handleChange}
+              />
+            </div>
           </div>
 
-          <div>
-            <Label>Tutor</Label>
-            <Input
-              name="tutor"
-              placeholder="Tutor name"
-              value={formData.tutor}
-              onChange={handleChange}
-            />
-          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <Label>Price</Label>
+              <Input
+                name="price"
+                type="number"
+                placeholder="e.g. 15000"
+                value={formData.price}
+                onChange={handleChange}
+              />
+            </div>
 
-          <div>
-            <Label>Price</Label>
-            <Input
-              name="price"
-              type="number"
-              placeholder="e.g. 15000"
-              value={formData.price}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div>
-            <Label>Course Image</Label>
-            <Input type="file" accept="image/*" onChange={handleImageChange} />
+            <div className="space-y-1">
+              <Label>Course Image</Label>
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() =>
+                    document.getElementById("image-upload")?.click()
+                  }
+                >
+                  <ImageIcon className="h-4 w-4 mr-2" />
+                  {formData.image ? "Change Image" : "Upload Image"}
+                </Button>
+                <input
+                  title="Upload Image"
+                  type="file"
+                  accept="image/*"
+                  id="image-upload"
+                  onChange={handleImageChange}
+                  className="hidden"
+                />
+                {imagePreview && (
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="h-12 w-12 rounded-md object-cover"
+                  />
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="px-4 py-3">
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={loading}>
+          <Button
+            className="bg-gradient-to-r from-primary to-accent hover:opacity-90 flex items-center gap-2"
+            onClick={handleSubmit}
+            disabled={loading}
+          >
+            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
             {loading ? "Saving..." : "Save Course"}
           </Button>
         </DialogFooter>

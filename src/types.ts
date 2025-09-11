@@ -41,9 +41,10 @@ export interface Course {
   title: string;
   sub_title?: string;
   description: string;
-  image: string;
-  tutor?: string;
+  image: string | File | null;
+  tutor?: string | null;
   instructor?: string;
+  price?: string;
   duration?: string;
   students?: number;
   startDate?: string;

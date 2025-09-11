@@ -18,6 +18,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import LogoutModal from "./ui/logoutModal";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface CRMLayoutProps {
   children: React.ReactNode;
@@ -102,14 +113,37 @@ export default function CRMLayout({ children }: CRMLayoutProps) {
                   Admin
                 </span>
               </div>
-              <div onClick={() => setLogoutOpen(true)} className="cursor-pointer">
+              {/* <div onClick={() => setLogoutOpen(true)} className="cursor-pointer">
                 <IoIosLogOut className="h-5 w-5 text-red-600 font-bold" />
                 <LogoutModal
                   isOpen={isLogoutOpen}
                   onClose={() => setLogoutOpen(false)}
                   onConfirm={handleLogout}
                 />
-              </div>
+              </div> */}
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <IoIosLogOut className="h-5 w-5 text-red-600 font-bold" />
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to log out? You will need to log in
+                      again to continue.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      onClick={handleLogout}
+                    >
+                      Yes,Log Out
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </div>
         </header>

@@ -11,6 +11,7 @@ import {
   MoreHorizontal,
   Users,
   Clock,
+  Trash,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -18,11 +19,24 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import useCourse from "@/hooks/useCourse";
 import AddCourseModal from "@/components/ui/AddCourseModal";
 import CourseDetailsModal from "@/components/ui/courseDetailsmodal";
+import EditCourseModal from "@/components/ui/editcourseModal";
 import useStudentProfile from "@/hooks/useStudentProfile";
-
+import { Course } from "@/types";
+import { toast } from "sonner";
+import axiosInstance from "@/api/axiosInstance";
 
 // Map Django choice keys to display labels
 const courseLabelMap: Record<string, string> = {
@@ -36,11 +50,118 @@ const courseLabelMap: Record<string, string> = {
 
 const Courses = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const { course } = useCourse();
+  const { course } = useCourse(); // Add refetch to update data after operations
   const [showModal, setShowModal] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<any>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const { studentProfile } = useStudentProfile();
+  const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
+  const [editFormData, setEditFormData] = useState<Course | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [courseToDelete, setCourseToDelete] = useState<Course | null>(null);
+
+  const handleEditCourse = (courseId: number): void => {
+    if (Array.isArray(course)) {
+      const courseToEdit = course.find((s: Course) => s.id === courseId);
+      if (courseToEdit) {
+        setEditFormData({ ...courseToEdit });
+        setIsEditModalOpen(true);
+      }
+    }
+  };
+
+  const validateForm = (courseData: Course): boolean => {
+    if (!(courseData.title ?? "").trim()) {
+      toast.error("Title is required");
+      return false;
+    }
+
+    if (!courseData.description?.trim()) {
+      toast.error("Description is required");
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSaveChanges = async (courseData: Course): Promise<void> => {
+    if (!validateForm(courseData)) return;
+
+    setIsSaving(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("title", courseData.title);
+      formData.append("description", courseData.description);
+
+      // Handle image (new upload vs existing)
+      if (courseData.image instanceof File) {
+        formData.append("image", courseData.image); // ✅ new file
+      }
+      // else: if it's a string (existing image URL), skip → backend will keep old one
+
+      if (courseData.duration) formData.append("duration", courseData.duration);
+      if (courseData.tutor) formData.append("tutor", courseData.tutor);
+      if (courseData.price)
+        formData.append("price", courseData.price.toString());
+      if (courseData.status) formData.append("status", courseData.status);
+
+      const response = await axiosInstance.patch(
+        `/course/${courseData.id}/`,
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
+
+      toast.success("Course updated successfully!");
+      closeEditModal();
+
+      // Refetch data to update the UI
+      // if (refetch) {
+      //   await refetch();
+      // }
+    } catch (error: any) {
+      console.error("Error updating course:", error);
+
+      let errorMessage = "Failed to update course";
+      if (error.response?.data) {
+        const errors = Object.values(error.response.data).flat();
+        if (errors.length > 0) errorMessage = errors[0] as string;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      toast.error(errorMessage);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteCourse = async (courseId: number) => {
+    try {
+      await axiosInstance.delete(`/course/${courseId}/`);
+      toast.success("Course deleted successfully!");
+      closeEditModal();
+      // refetch courses or update local state
+    } catch (error: any) {
+      toast.error("Failed to delete course");
+      console.error("Delete error:", error);
+    }
+  };
+
+
+  const openDeleteDialog = (course: Course) => {
+    setCourseToDelete(course);
+    setDeleteDialogOpen(true);
+  };
+
+  const closeEditModal = (): void => {
+    if (isSaving) return;
+    setIsEditModalOpen(false);
+    setEditFormData(null);
+  };
 
   function formatCourseName(course: string | null) {
     if (!course) return "No Course";
@@ -61,7 +182,6 @@ const Courses = () => {
       })
     : [];
 
-  // Get only active users
   const activeUsers = Array.isArray(studentProfile)
     ? studentProfile.filter((p) => p.can_access_profile)
     : [];
@@ -75,7 +195,6 @@ const Courses = () => {
     },
     {} as Record<string, number>
   );
-
 
   const getStatusBadge = (status: string) => {
     const variants = {
@@ -150,6 +269,7 @@ const Courses = () => {
               <img
                 src={`${import.meta.env.VITE_MEDIA_BASE_URL}${course.image}`}
                 alt=""
+                className="w-full h-full object-cover"
               />
             </div>
 
@@ -184,14 +304,19 @@ const Courses = () => {
                       <Eye className="h-4 w-4 mr-2" />
                       View Details
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleEditCourse(course.id)}
+                    >
                       <Edit className="h-4 w-4 mr-2" />
                       Edit Course
                     </DropdownMenuItem>
-                    {/* <DropdownMenuItem>
-                      <Users className="h-4 w-4 mr-2" />
-                      Manage Students
-                    </DropdownMenuItem> */}
+                    <DropdownMenuItem
+                      onClick={() => openDeleteDialog(course)}
+                      className="text-red-600 focus:text-red-600"
+                    >
+                      <Trash className="h-4 w-4 mr-2" />
+                      Delete Course
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -201,14 +326,16 @@ const Courses = () => {
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Instructor</span>
-                  <span className="font-medium">{course.tutor}</span>
+                  <span className="font-medium">
+                    {course.tutor || "Not assigned"}
+                  </span>
                 </div>
 
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Duration</span>
                   <span className="font-medium flex items-center gap-1">
                     <Clock className="h-3 w-3" />
-                    {course.duration}
+                    {course.duration || "Not specified"}
                   </span>
                 </div>
 
@@ -219,30 +346,12 @@ const Courses = () => {
                     {studentsByCourse[courseLabelMap[course.title]] || 0}
                   </span>
                 </div>
-
-                {/* <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Start Date</span>
-                  <span className="font-medium flex items-center gap-1">
-                    <Calendar className="h-3 w-3" />
-                    {new Date(course.startDate).toLocaleDateString()}
-                  </span>
-                </div> */}
-
-                {/* {course.rating > 0 && (
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Rating</span>
-                    <span className="font-medium flex items-center gap-1">
-                      <Star className="h-3 w-3 fill-current text-warning" />
-                      {course.rating}
-                    </span>
-                  </div>
-                )} */}
               </div>
 
               <div className="flex items-center justify-between pt-4 border-t">
-                {/* <div className="text-lg font-bold text-primary">
-                  {course.price}
-                </div> */}
+                <div className="text-lg font-bold text-primary">
+                 ₹ {course.price || "Free"}
+                </div>
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
@@ -255,7 +364,11 @@ const Courses = () => {
                     <Eye className="h-4 w-4 mr-1" />
                     View
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleEditCourse(course.id)}
+                  >
                     <Edit className="h-4 w-4 mr-1" />
                     Edit
                   </Button>
@@ -266,17 +379,51 @@ const Courses = () => {
         ))}
       </div>
 
-      <div>
-        <AddCourseModal open={showModal} onClose={() => setShowModal(false)} />
-      </div>
-      <div>
-        <CourseDetailsModal
-          open={detailsOpen}
-          onClose={() => setDetailsOpen(false)}
-          course={selectedCourse}
-        />
-      </div>
+      {/* Modals */}
+      <AddCourseModal open={showModal} onClose={() => setShowModal(false)} />
 
+      <CourseDetailsModal
+        open={detailsOpen}
+        onClose={() => setDetailsOpen(false)}
+        course={selectedCourse}
+      />
+
+      <EditCourseModal
+        open={isEditModalOpen}
+        onClose={closeEditModal}
+        course={editFormData} 
+        onSave={handleSaveChanges}
+        onDelete={handleDeleteCourse}
+        isSaving={isSaving}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the
+              course "{courseToDelete?.title}" and remove all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteDialogOpen(false)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() =>
+                courseToDelete && handleDeleteCourse(courseToDelete.id)
+              }
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete Course
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Empty State */}
       {filteredCourses.length === 0 && (
         <Card className="border-0 shadow-lg">
           <CardContent className="py-12 text-center">
@@ -287,7 +434,7 @@ const Courses = () => {
               No courses found
             </h3>
             <p className="text-muted-foreground mt-1">
-              Try adjusting your search criteria.
+              Try adjusting your search criteria or create a new course.
             </p>
           </CardContent>
         </Card>

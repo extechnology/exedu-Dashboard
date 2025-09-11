@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,11 +14,16 @@ import {
 import { Badge } from "@/components/ui/badge";
 import useCourse from "@/hooks/useCourse";
 import useStudentProfile from "@/hooks/useStudentProfile";
+import AddCourseModal from "@/components/ui/AddCourseModal";
+import { Link } from "react-router-dom";
+
+
+type StatusVariant = "Active" | "Completed" | "Pending";
 
 const Dashboard = () => {
-
   const { course } = useCourse();
   const { studentProfile } = useStudentProfile();
+  const [showModal, setShowModal] = useState(false);
   const accessibleStudentsCount = Array.isArray(studentProfile)
     ? studentProfile.filter((s: any) => s?.can_access_profile).length
     : 0;
@@ -28,7 +34,25 @@ const Dashboard = () => {
 
   const totalCourses = Array.isArray(course) ? course.length : 0;
 
+  const [showAll, setShowAll] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const studentsPerPage = 5;
+
+
+  const allStudents = Array.isArray(studentProfile) ? studentProfile : [];
+
+  const paginatedStudents = showAll
+    ? allStudents.slice(
+        (currentPage - 1) * studentsPerPage,
+        currentPage * studentsPerPage
+      )
+    : allStudents.slice(0, 5);
+
+  const totalPages = Math.ceil(allStudents.length / studentsPerPage);
+
   console.log("accessibleStudentsCount", accessibleStudentsCount);
+  console.log("paginatted", paginatedStudents);
+
   const stats = [
     {
       name: "Total Students",
@@ -68,27 +92,33 @@ const Dashboard = () => {
       .join(" ");
   }
 
-
   const recentStudents = Array.isArray(studentProfile)
     ? studentProfile.slice(0, 5)
     : [];
 
+  const getStatusBadge = (status: string): string => {
+    const variants: Record<StatusVariant, string> = {
+      Active: "bg-blue-500 text-white",
+      Completed: "bg-blue-500 text-white",
+      Pending: "bg-orange-500 text-black",
+    };
+    return variants[status as StatusVariant] || "bg-gray-300 text-black";
+  };
 
-    console.log("recentStudents", recentStudents);
+  const getPaymentStatusBadge = (
+    paymentCompleted: boolean,
+    paidAmount?: number
+  ): string => {
+    if (paymentCompleted) {
+      return "bg-green-500 text-white";
+    } else if (paidAmount && paidAmount > 0) {
+      return "bg-yellow-500 text-black";
+    } else {
+      return "bg-red-500 text-white";
+    }
+  };
 
-  const upcomingTasks = [
-    {
-      id: 1,
-      title: "Review certificate applications",
-      count: 12,
-      priority: "high",
-    },
-    { id: 2, title: "Update course materials", count: 5, priority: "medium" },
-    { id: 3, title: "Student progress review", count: 23, priority: "low" },
-    { id: 4, title: "Attendance verification", count: 8, priority: "high" },
-  ];
 
-  
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -99,10 +129,10 @@ const Dashboard = () => {
             Welcome back! Here's what's happening with your education center.
           </p>
         </div>
-        <Button className="bg-gradient-to-r from-primary to-accent hover:opacity-90">
+        {/* <Button className="bg-gradient-to-r from-primary to-accent hover:opacity-90">
           <Plus className="h-4 w-4 mr-2" />
           Add New Student
-        </Button>
+        </Button> */}
       </div>
 
       {/* Stats Grid */}
@@ -144,7 +174,7 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {recentStudents.map((student: any) => (
+              {paginatedStudents.map((student: any) => (
                 <div
                   key={student.id}
                   className="flex items-center justify-between p-4 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors"
@@ -178,115 +208,137 @@ const Dashboard = () => {
 
                   <div className="flex items-center gap-3">
                     <div className="text-right">
-                      <Badge
-                        variant={
-                          student?.status === "Active" ? "default" : "secondary"
-                        }
-                        className={
-                          student?.status === "Active"
-                            ? "bg-success text-success-foreground"
-                            : ""
-                        }
-                      >
-                        {student?.status ?? "Pending"}
-                      </Badge>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {student?.progress ?? 0}% complete
-                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge
+                          className={`${getStatusBadge(
+                            student.can_access_profile ? "Active" : "Pending"
+                          )}`}
+                        >
+                          {student.can_access_profile ? "Active" : "Pending"}
+                        </Badge>
+
+                        <span
+                          className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-medium ${getPaymentStatusBadge(
+                            student.payment_completed,
+                            student.paid_amount
+                          )}`}
+                        >
+                          {student.payment_completed
+                            ? "Paid"
+                            : student.paid_amount > 0
+                            ? "Partial"
+                            : "Unpaid"}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-            <Button
-              variant="ghost"
-              className="w-full mt-4 text-primary hover:text-primary"
-            >
-              View All Students
-            </Button>
+            {!showAll ? (
+              <Button
+                variant="ghost"
+                className="w-full mt-4 text-primary hover:text-primary"
+                onClick={() => setShowAll(true)}
+              >
+                View All Students
+              </Button>
+            ) : (
+              <div className="flex flex-col items-center  gap-4 mt-4">
+                {/* Pagination Controls */}
+                <div className="flex gap-2 ">
+                  <Button
+                    variant="outline"
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage((prev) => prev - 1)}
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-sm  content-center text-muted-foreground">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage((prev) => prev + 1)}
+                  >
+                    Next
+                  </Button>
+                </div>
+
+                <Button
+                  variant="ghost"
+                  className="text-primary hover:text-primary"
+                  onClick={() => {
+                    setShowAll(false);
+                    setCurrentPage(1);
+                  }}
+                >
+                  Show Less
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* Upcoming Tasks */}
+        {/* Quick Actions */}
         <Card className="border-0 shadow-lg">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-primary" />
-              Upcoming Tasks
-            </CardTitle>
+            <CardTitle>Quick Actions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {upcomingTasks.map((task) => (
-                <div
-                  key={task.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors"
+            <div className="flex flex-col gap-2">
+              {/* <Button
+                variant="outline"
+                className="h-auto p-4 flex flex-col items-center hover:text-black gap-2 hover:bg-primary/5 hover:border-primary"
+              >
+                <Users className="h-6 w-6 text-primary" />
+                <span>Add Student</span>
+              </Button> */}
+              <Button
+                variant="outline"
+                onClick={() => setShowModal(true)}
+                className="h-auto p-4 flex flex-col items-center hover:text-black gap-2 hover:bg-primary/5 hover:border-primary"
+              >
+                <BookOpen className="h-6 w-6 text-primary" />
+                <span>Create Course</span>
+              </Button>
+
+              <Button
+                asChild
+                variant="outline"
+                className="h-auto p-4 flex flex-col items-center hover:text-black gap-2 hover:bg-primary/5 hover:border-primary"
+              >
+                <Link
+                  to="/admin/attendance"
+                  className="flex flex-col items-center gap-2"
                 >
-                  <div className="flex-1">
-                    <p className="font-medium text-sm text-foreground">
-                      {task.title}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {task.count} items
-                    </p>
-                  </div>
-                  <Badge
-                    variant="outline"
-                    className={
-                      task.priority === "high"
-                        ? "border-destructive text-destructive"
-                        : task.priority === "medium"
-                        ? "border-warning text-warning"
-                        : "border-success text-success"
-                    }
-                  >
-                    {task.priority}
-                  </Badge>
-                </div>
-              ))}
+                  <Calendar className="h-6 w-6 text-primary" />
+                  <span>Mark Attendance</span>
+                </Link>
+              </Button>
+
+              <Button
+                asChild
+                variant="outline"
+                className="h-auto p-4 flex flex-col items-center hover:text-black gap-2 hover:bg-primary/5 hover:border-primary"
+              >
+                <Link
+                  to="/admin/certificates"
+                  className="flex flex-col items-center gap-2"
+                >
+                  <Award className="h-6 w-6 text-primary" />
+                  <span>Issue Certificates</span>
+                </Link>
+              </Button>
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Quick Actions */}
-      <Card className="border-0 shadow-lg">
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Button
-              variant="outline"
-              className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-primary/5 hover:border-primary"
-            >
-              <Users className="h-6 w-6 text-primary" />
-              <span>Add Student</span>
-            </Button>
-            <Button
-              variant="outline"
-              className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-primary/5 hover:border-primary"
-            >
-              <BookOpen className="h-6 w-6 text-primary" />
-              <span>Create Course</span>
-            </Button>
-            <Button
-              variant="outline"
-              className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-primary/5 hover:border-primary"
-            >
-              <Calendar className="h-6 w-6 text-primary" />
-              <span>Mark Attendance</span>
-            </Button>
-            <Button
-              variant="outline"
-              className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-primary/5 hover:border-primary"
-            >
-              <Award className="h-6 w-6 text-primary" />
-              <span>Issue Certificate</span>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+
+      <AddCourseModal open={showModal} onClose={() => setShowModal(false)} />
     </div>
   );
 };
