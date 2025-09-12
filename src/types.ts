@@ -14,6 +14,8 @@ export interface StudentProfile {
   email: string;
   phone_number: string;
   user: number;
+  id: number;
+  title: string;
   secondary_school: string;
   secondary_year: string;
   university: string;
@@ -49,4 +51,16 @@ export interface Course {
   students?: number;
   startDate?: string;
   status?: "Active" | "Upcoming" | "Completed" | "Draft";
+}
+
+
+export interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: " LOGIN" | "PROFILE" | "ENQUIRY" | "ADMISSION";
+  related_id: number;
+  is_read: boolean;
+  created_at: string;
+  related_model: string;
 }

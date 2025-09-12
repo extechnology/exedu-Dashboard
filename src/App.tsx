@@ -13,7 +13,9 @@ import Attendance from "./pages/admin/Attendance";
 import Certificates from "./pages/admin/Certificates";
 import Analytics from "./pages/admin/Analytics";
 import Settings from "./pages/admin/Settings";
+import NotificationsPage from "./pages/admin/Notifications";
 import { Login } from "./pages/admin/Login";
+
 
 const queryClient = new QueryClient();
 
@@ -32,6 +34,7 @@ const App = () => (
           <Route path="/admin/certificates" element={<CRMLayout><Certificates /></CRMLayout>} />
           <Route path="/admin/analytics" element={<CRMLayout><Analytics /></CRMLayout>} />
           <Route path="/admin/settings" element={<CRMLayout><Settings /></CRMLayout>} />
+          <Route path="/admin/notifications" element={<CRMLayout><NotificationsPage /></CRMLayout>} />
           <Route path="/login" element={<Login />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

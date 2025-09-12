@@ -7,7 +7,7 @@ import {
   BookOpen,
   Calendar,
   Award,
-  BarChart3,
+  // BarChart3,
   // Settings,
   Bell,
   Search,
@@ -17,7 +17,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
-import LogoutModal from "./ui/logoutModal";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,6 +28,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import useNotification from "@/hooks/useNotification";
 
 interface CRMLayoutProps {
   children: React.ReactNode;
@@ -40,7 +40,7 @@ const navigation = [
   { name: "Courses", href: "/admin/courses", icon: BookOpen },
   { name: "Attendance", href: "/admin/attendance", icon: Calendar },
   { name: "Certificates", href: "/admin/certificates", icon: Award },
-  { name: "Analytics", href: "/admin/analytics", icon: BarChart3 },
+  // { name: "Analytics", href: "/admin/analytics", icon: BarChart3 },
   // { name: "Settings", href: "/admin/settings", icon: Settings },
 ];
 
@@ -48,7 +48,10 @@ export default function CRMLayout({ children }: CRMLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { notifications } = useNotification();
   const [isLogoutOpen, setLogoutOpen] = useState(false);
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
+
 
   const handleLogout = () => {
     localStorage.clear();
@@ -98,12 +101,18 @@ export default function CRMLayout({ children }: CRMLayoutProps) {
               />
             </div>
             <div className="flex items-center gap-x-4 lg:gap-x-6">
-              <Button variant="ghost" size="sm" className="relative">
-                <Bell className="h-5 w-5" />
-                <span className="absolute -top-1 -right-1 h-4 w-4 bg-destructive text-[10px] font-medium text-destructive-foreground rounded-full flex items-center justify-center">
-                  3
-                </span>
-              </Button>
+              <Link to={"/admin/notifications"}>
+                <Button variant="ghost" size="sm" className="relative">
+                  <div className="relative">
+                    <Bell className="w-12 h-12 text-gray-700" />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center font-medium">
+                        {unreadCount}
+                      </span>
+                    )}
+                  </div>
+                </Button>
+              </Link>
               <div className="h-6 w-px bg-border" />
               <div className="flex items-center gap-3">
                 <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-sm font-semibold text-primary-foreground">
@@ -113,17 +122,9 @@ export default function CRMLayout({ children }: CRMLayoutProps) {
                   Admin
                 </span>
               </div>
-              {/* <div onClick={() => setLogoutOpen(true)} className="cursor-pointer">
-                <IoIosLogOut className="h-5 w-5 text-red-600 font-bold" />
-                <LogoutModal
-                  isOpen={isLogoutOpen}
-                  onClose={() => setLogoutOpen(false)}
-                  onConfirm={handleLogout}
-                />
-              </div> */}
               <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <IoIosLogOut className="h-5 w-5 text-red-600 font-bold" />
+                <AlertDialogTrigger asChild className="cursor-pointer">
+                  <IoIosLogOut className="h-5 w-5 text-red-600 font-bold cursor-pointer" />
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>

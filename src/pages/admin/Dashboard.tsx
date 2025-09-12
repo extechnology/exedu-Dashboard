@@ -238,7 +238,7 @@ const Dashboard = () => {
             {!showAll ? (
               <Button
                 variant="ghost"
-                className="w-full mt-4 text-primary hover:text-primary"
+                className="w-full mt-4 text-primary hover:text-white"
                 onClick={() => setShowAll(true)}
               >
                 View All Students
