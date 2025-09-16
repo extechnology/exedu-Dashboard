@@ -10,44 +10,41 @@ import {
 } from "lucide-react";
 import useNotification from "@/hooks/useNotification";
 import axiosInstance from "@/api/axiosInstance";
+import { useNavigate } from "react-router-dom";
 
 const NotificationsPage: React.FC = () => {
+  const navigate = useNavigate();
   const { notifications: originalNotifications, loading } = useNotification();
   const [notifications, setNotifications] = React.useState(
     originalNotifications
   );
 
-
   React.useEffect(() => {
     setNotifications(originalNotifications);
   }, [originalNotifications]);
 
+  console.log(notifications,"notifications");
 
+  const markAsRead = async (id: string) => {
+    try {
+      // Update backend
+      await axiosInstance.patch(`/notification/${id}/mark-read/`);
 
-const markAsRead = async (id: string) => {
-  try {
-    // Update backend
-    await axiosInstance.patch(`/notification/${id}/mark-read/`);
-
-    // Update frontend state
-    setNotifications((prev) =>
-      prev.map((notif) =>
-        notif.id === id ? { ...notif, is_read: true } : notif
-      )
-    );
-  } catch (error) {
-    console.error("Failed to mark notification as read", error);
-  }
-};
-
-
+      // Update frontend state
+      setNotifications((prev) =>
+        prev.map((notif) =>
+          notif.id === id ? { ...notif, is_read: true } : notif
+        )
+      );
+    } catch (error) {
+      console.error("Failed to mark notification as read", error);
+    }
+  };
 
   const markAllAsRead = async () => {
     try {
-      // Update backend
       await axiosInstance.patch(`/notification/mark-all-read/`);
 
-      // Update frontend state
       setNotifications((prev) =>
         prev.map((notif) => ({ ...notif, is_read: true }))
       );
@@ -56,11 +53,29 @@ const markAsRead = async (id: string) => {
     }
   };
 
-
   const deleteNotification = (id: string) => {
     setNotifications((prev) => prev.filter((notif) => notif.id !== id));
   };
 
+  const handleNotificationClick = (notif: any) => {
+    if (notif.type === "LOGIN") return; 
+    markAsRead(notif.id);
+
+    switch (notif.type) {
+      case "ENQUIRY":
+        navigate(`/enquiries/${notif.id}`); 
+        break;
+      case "ADMISSION":
+        navigate(`/admissions/${notif.id}`);
+        break;
+     
+      case "PROFILE":
+        navigate(`/admin/students/${notif.id}`);
+        break;
+      default:
+        navigate(`/notifications/${notif.id}`); // fallback
+    }
+  };
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -158,7 +173,8 @@ const markAsRead = async (id: string) => {
             {sortedNotifications.map((notification) => (
               <div
                 key={notification.id}
-                className={`bg-white rounded-xl shadow-sm border transition-all duration-200 hover:shadow-md ${
+                onClick={() => handleNotificationClick(notification)}
+                className={`cursor-pointer bg-white rounded-xl shadow-sm border transition-all duration-200 hover:shadow-md ${
                   notification.is_read
                     ? "border-gray-200 opacity-75"
                     : "border-blue-200 shadow-md"
@@ -208,6 +224,7 @@ const markAsRead = async (id: string) => {
                           <X className="w-4 h-4" />
                         </button>
                       </div>
+                      {/* actions (mark read/delete) remain same */}
                     </div>
                     <div className="flex items-center space-x-2 mt-3 text-xs text-gray-400">
                       <Clock className="w-3 h-3" />

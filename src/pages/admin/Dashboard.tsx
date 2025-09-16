@@ -84,13 +84,27 @@ const Dashboard = () => {
     },
   ];
 
-  function formatCourseName(course: string | null) {
-    if (!course) return "No Course";
-    return course
-      .split("_")
-      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-      .join(" ");
+
+function formatCourseName(
+  course: string | { title?: string; course_name?: string } | null
+) {
+  if (!course) return "No Course";
+
+  let courseTitle = "";
+
+  if (typeof course === "string") {
+    courseTitle = course;
+  } else if (typeof course === "object") {
+    courseTitle = course.course_name || course.title || "";
   }
+
+  if (!courseTitle) return "No Course";
+
+  return courseTitle
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 
   const recentStudents = Array.isArray(studentProfile)
     ? studentProfile.slice(0, 5)
@@ -201,7 +215,9 @@ const Dashboard = () => {
                         {student?.name}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        {formatCourseName(student?.course) ?? "N/A"}
+                        {student.course_name
+                          ? formatCourseName(student.course_name)
+                          : formatCourseName(student.course)}
                       </p>
                     </div>
                   </div>

@@ -26,24 +26,22 @@ import useCourse from "@/hooks/useCourse";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
-
-
 type Status = "Present" | "Absent" | "Late" | null;
 
 const Attendance = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [selectedCourse, setSelectedCourse] = useState<string>("all");
+  const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
+
   const { studentProfile, loading, error } = useStudentProfile();
   const { course, loading: courseLoading, error: courseError } = useCourse();
-  console.log(studentProfile, "student profile");
   const CourseTitles = Array.isArray(course) ? course.map((c) => c.title) : [];
-
-  console.log(CourseTitles, "coursesss");
+  const [currentPage, setCurrentPage] = useState(1);
+  const studentsPerPage = 5;
 
   const selectedCourseObj = Array.isArray(course)
     ? course.find((c: any) => c.title === selectedCourse)
     : null;
-  const courseId = selectedCourseObj ? selectedCourseObj.id : undefined;
+  const courseId = selectedCourse ? Number(selectedCourse) : undefined;
 
   const {
     records,
@@ -51,6 +49,7 @@ const Attendance = () => {
     loading: attendanceLoading,
     error: attendanceError,
   } = useAttendance(selectedDate, courseId);
+  console.log("Attendance Records:", records);
 
   const accessibleStudents = useMemo(
     () =>
@@ -61,31 +60,49 @@ const Attendance = () => {
   );
 
   const CourseOptions = Array.isArray(course)
-    ? course.map((c: any) => (
-        <SelectItem key={c.id} value={c.title}>
-          {c.title
-            .replace(/_/g, " ")
-            .replace(/\b\w/g, (char) => char.toUpperCase())}
-        </SelectItem>
-      ))
+    ? course.map((c: any) => {
+        const rawLabel = c.course_name || c.title;
+        const formattedLabel = rawLabel
+          .replace(/_/g, " ")
+          .replace(/\b\w/g, (char) => char.toUpperCase());
+
+        return (
+          <SelectItem key={c.id} value={String(c.id)}>
+            {formattedLabel}
+          </SelectItem>
+        );
+      })
     : [];
 
-    const firstCourseValue =
-      CourseOptions.length > 0 ? (CourseOptions[0].props.value as string) : "";
+  const firstCourseValue =
+    CourseOptions.length > 0 ? (CourseOptions[0].props.value as string) : "";
 
-    useEffect(() => {
-      if (CourseOptions.length > 0) {
-        setSelectedCourse(CourseOptions[0].props.value as string);
-      }
-    }, [CourseOptions]);
-
+  useEffect(() => {
+    if (CourseOptions.length > 0 && !selectedCourse) {
+      setSelectedCourse(CourseOptions[0].props.value as string);
+    }
+  }, [CourseOptions, selectedCourse]);
 
   const filteredStudents = useMemo(() => {
-    if (selectedCourse === "all") return accessibleStudents;
-
-    return accessibleStudents.filter((s: any) => s.course === selectedCourse);
+    if (!selectedCourse) {
+      return accessibleStudents.filter((s: any) => s.course);
+    }
+    return accessibleStudents.filter(
+      (s: any) => String(s.course) === selectedCourse
+    );
   }, [accessibleStudents, selectedCourse]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedCourse, filteredStudents.length]);
+
+  const totalPages = Math.ceil(filteredStudents.length / studentsPerPage);
+
+  const paginatedStudents = useMemo(() => {
+    const startIndex = (currentPage - 1) * studentsPerPage;
+    const endIndex = startIndex + studentsPerPage;
+    return filteredStudents.slice(startIndex, endIndex);
+  }, [filteredStudents, currentPage, studentsPerPage]);
 
   function formatCourseName(course: string | null) {
     if (!course) return "No Course";
@@ -155,15 +172,12 @@ const Attendance = () => {
     });
   };
 
-
-
   const handleGenerateReport = () => {
     if (!filteredStudents.length) {
       alert("No students available for report");
       return;
     }
 
-    // Build rows for Excel
     const data = filteredStudents.map((student: any) => {
       const status = statusMap[student.unique_id] || "Not Marked";
       return {
@@ -181,10 +195,8 @@ const Attendance = () => {
       Date: "",
     });
 
-    // Create worksheet
     const worksheet = XLSX.utils.json_to_sheet(data);
 
-    // Create workbook
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Attendance Report");
 
@@ -372,7 +384,7 @@ const Attendance = () => {
                 <p className="text-muted-foreground">No students found.</p>
               )}
 
-              {filteredStudents
+              {paginatedStudents
                 .slice()
                 .sort((a: any, b: any) =>
                   (a?.name || "").localeCompare(b?.name || "")
@@ -380,7 +392,7 @@ const Attendance = () => {
                 .map((student: any) => {
                   const currentStatus: Status = statusMap[student.unique_id];
                   const statusInfo = getStatusBadge(currentStatus) || {
-                    icon: () => null, // fallback empty icon
+                    icon: () => null,
                     label: currentStatus,
                     color: "gray",
                   };
@@ -400,17 +412,12 @@ const Attendance = () => {
                             {student.name}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {student.course
-                              ? student.course
-                                  .replace(/_/g, " ")
-                                  .replace(/\b\w/g, (c) => c.toUpperCase())
-                              : "No Course"}
+                            {student.course_name || "No Course"}
                           </p>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-3">
-                        {/* Status toggle buttons */}
                         <div className="hidden sm:flex items-center gap-2">
                           <Button
                             size="sm"
@@ -451,12 +458,6 @@ const Attendance = () => {
                             Absent
                           </Button>
                         </div>
-
-                        {/* Current status badge */}
-                        {/* <Badge className={statusInfo.className}>
-                          <StatusIcon className="h-3 w-3 mr-1" />
-                          {currentStatus}
-                        </Badge> */}
                       </div>
                     </div>
                   );
@@ -465,6 +466,43 @@ const Attendance = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Pagination Controls */}
+      {filteredStudents.length > studentsPerPage && (
+        <Card className="border-0 shadow-lg">
+          <CardContent className="py-4">
+            <div className="flex justify-between items-center">
+              <Button
+                variant="outline"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+              >
+                Previous
+              </Button>
+
+              <div className="flex items-center gap-4">
+                <span className="text-sm font-medium">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  Showing {paginatedStudents.length} of{" "}
+                  {filteredStudents.length} students
+                </span>
+              </div>
+
+              <Button
+                variant="outline"
+                disabled={currentPage === totalPages}
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(p + 1, totalPages))
+                }
+              >
+                Next
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Quick Actions (now functional for the current filtered list) */}
       <Card className="border-0 shadow-lg">

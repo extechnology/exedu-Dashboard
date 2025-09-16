@@ -46,6 +46,13 @@ import useStudentProfile from "@/hooks/useStudentProfile";
 import { toast } from "sonner";
 import axiosInstance from "@/api/axiosInstance";
 import AddStudentModal from "@/components/ui/addStudentModal";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface StudentProfileData {
   unique_id: string;
@@ -61,6 +68,7 @@ interface StudentProfileData {
   career_objective: string;
   skills: string;
   experience: string;
+  course_name: string | null;
   interests: string;
   created_at: string;
   is_public: boolean;
@@ -93,6 +101,16 @@ interface NormalizedStudent {
 type FilterType = "all" | "active" | "completed" | "pending";
 type StatusVariant = "Active" | "Completed" | "Pending";
 // type PaymentStatusVariant = "Completed" | "Pending" | "Failed";
+const courseOptions = [
+  { id: 2, title: "graphic_design", title_display: "Graphic Design" },
+  { id: 3, title: "ui_ux_design", title_display: "UI/UX Design" },
+  {
+    id: 5,
+    title: "web_and_app_development",
+    title_display: "Web & App Development",
+  },
+  { id: 6, title: "video_editing", title_display: "Video Editing" },
+];
 
 const Students = () => {
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -112,10 +130,6 @@ const Students = () => {
   const [imagePreview, setImagePreview] = useState<string>("");
 
 
-
-  console.log("studentProfile", studentProfile);
-
-  // 🔄 Normalize API data - only include students with can_access_profile: true
   const students = useMemo((): NormalizedStudent[] => {
     if (!studentProfile || !Array.isArray(studentProfile)) return [];
 
@@ -128,7 +142,7 @@ const Students = () => {
             name: s.name || "Unnamed",
             email: s.email || "N/A",
             phone: s.phone_number || "N/A",
-            course: s.course || "Not Assigned",
+            course: s.course_name || "Not Assigned",
             joinDate: s.created_at,
             status: s.can_access_profile ? "Active" : "Pending",
             progress: s.payment_completed ? 100 : 0,
@@ -243,6 +257,7 @@ const Students = () => {
 
   const handleSaveChanges = async (): Promise<void> => {
     if (!editFormData || !validateForm()) return;
+    console.log(editFormData,"editFormData");
 
     setIsSaving(true);
 
@@ -268,6 +283,10 @@ const Students = () => {
         formData.append("university_major", editFormData.university_major);
       if (editFormData.university_year)
         formData.append("university_year", editFormData.university_year);
+      if (editFormData.course && editFormData.course !== "Not Assigned") {
+        formData.append("course", String(editFormData.course)); // must be ID (number → string)
+      }
+
 
       if (editFormData.career_objective)
         formData.append("career_objective", editFormData.career_objective);
@@ -292,6 +311,11 @@ const Students = () => {
       if (editFormData.paid_amount !== null)
         formData.append("paid_amount", String(editFormData.paid_amount));
 
+      for (let [key, value] of formData.entries()) {
+        console.log(key, value,"debugging");
+      }
+
+
       const response = await axiosInstance.patch(
         `/student/profile/${editFormData.unique_id}/`,
         formData,
@@ -309,7 +333,6 @@ const Students = () => {
       setIsSaving(false);
     }
   };
-
 
   const closeModal = (): void => {
     setIsModalOpen(false);
@@ -349,6 +372,7 @@ const Students = () => {
       .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
       .join(" ");
   }
+
   const formatCurrency = (amount: number | null): string => {
     if (!amount) return "₹0";
     return `₹${amount.toLocaleString()}`;
@@ -584,7 +608,7 @@ const Students = () => {
                     selectedStudent.profile_image
                   }`}
                   alt={selectedStudent.name}
-                  className="h-12 w-12 rounded-full object-cover"
+                  className="h-28 w-28  rounded-full object-cover"
                 />
               ) : (
                 <div className="h-12 w-12 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-lg font-semibold text-primary-foreground">
@@ -1173,15 +1197,33 @@ const Students = () => {
                     <Label htmlFor="course" className="text-sm font-medium">
                       Current Course
                     </Label>
-                    <Input
-                      id="course"
-                      value={editFormData.course || ""}
-                      onChange={(e) =>
-                        handleInputChange("course", e.target.value)
+                    <Select
+                      onValueChange={(value) =>
+                        handleInputChange("course", value)
                       }
-                      placeholder="Enter course name"
+                      value={
+                        editFormData.course ? String(editFormData.course) : ""
+                      }
                       disabled={isSaving}
-                    />
+                    >
+                      <SelectTrigger className="w-full border bg-muted/50 text-black">
+                        <SelectValue
+                          placeholder="Select a course"
+                          className="text-black"
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {courseOptions.map((course) => (
+                          <SelectItem
+                            key={course.id}
+                            value={String(course.id)}
+                            className="text-black"
+                          >
+                            {course.title_display}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label
