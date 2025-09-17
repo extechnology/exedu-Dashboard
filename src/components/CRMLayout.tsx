@@ -13,6 +13,10 @@ import {
   Search,
   Menu,
   X,
+  CircleUser,
+  Info,
+  ClockAlert,
+  UserRoundPlus
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,10 +40,15 @@ interface CRMLayoutProps {
 
 const navigation = [
   { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
+  { name: "Tutor", href: "/admin/tutor", icon: UserRoundPlus },
+  { name: "Batch", href: "/admin/batch", icon: ClockAlert },
   { name: "Students", href: "/admin/students", icon: Users },
   { name: "Courses", href: "/admin/courses", icon: BookOpen },
   { name: "Attendance", href: "/admin/attendance", icon: Calendar },
   { name: "Certificates", href: "/admin/certificates", icon: Award },
+  { name: "Enquiries", href: "/admin/enquiries", icon: Info },
+  { name: "Contacts", href: "/admin/contacts", icon: CircleUser },
+
   // { name: "Analytics", href: "/admin/analytics", icon: BarChart3 },
   // { name: "Settings", href: "/admin/settings", icon: Settings },
 ];

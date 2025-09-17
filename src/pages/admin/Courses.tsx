@@ -12,6 +12,7 @@ import {
   Users,
   Clock,
   Trash,
+  PlusCircle
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -221,13 +222,12 @@ const Courses = () => {
             Create, edit, and manage all your educational courses.
           </p>
         </div>
-        <Button
-          className="bg-gradient-to-r from-primary to-accent hover:opacity-90"
+        <button
           onClick={() => setShowModal(true)}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white shadow-md hover:scale-105 transition-transform"
         >
-          <Plus className="h-4 w-4 mr-2" />
-          Create New Course
-        </Button>
+          <PlusCircle size={20} /> Add Course
+        </button>
       </div>
 
       {/* Search and Stats */}
@@ -350,7 +350,7 @@ const Courses = () => {
 
               <div className="flex items-center justify-between pt-4 border-t">
                 <div className="text-lg font-bold text-primary">
-                 ₹ {course.price || "Free"}
+                  ₹ {course.price || "Free"}
                 </div>
                 <div className="flex gap-2">
                   <Button
@@ -391,7 +391,7 @@ const Courses = () => {
       <EditCourseModal
         open={isEditModalOpen}
         onClose={closeEditModal}
-        course={editFormData} 
+        course={editFormData}
         onSave={handleSaveChanges}
         onDelete={handleDeleteCourse}
         isSaving={isSaving}

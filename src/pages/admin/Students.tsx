@@ -53,34 +53,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import useBatches from "@/hooks/useBatch";
+import useCourseOptions from "@/hooks/useCourseOptions";
+import type { StudentProfile } from "@/types";
 
-interface StudentProfileData {
-  unique_id: string;
-  profile_image: File | null;
-  name: string;
-  email: string;
-  phone_number: string | null;
-  secondary_school: string | null;
-  secondary_year: string | null;
-  university: string | null;
-  university_major: string | null;
-  university_year: string | null;
-  career_objective: string;
-  skills: string;
-  experience: string;
-  course_name: string | null;
-  interests: string;
-  created_at: string;
-  is_public: boolean;
-  can_access_profile: boolean;
-  course: string | null;
-  enrolled_at: string | null;
-  bach_number: string | null;
-  payment_completed: boolean;
-  paid_amount: number | null;
-  paid_at: string | null;
-  user: number;
-}
 
 interface NormalizedStudent {
   id: string;
@@ -89,10 +65,12 @@ interface NormalizedStudent {
   phone: string;
   course: string;
   joinDate: string;
+  batch: number;
   status: string;
   progress: number;
   attendance: number;
   avatar: string;
+  enrolled_at: string;
   profileImage: string | File | null;
   payment_completed: boolean;
   paid_amount: number | null;
@@ -101,35 +79,26 @@ interface NormalizedStudent {
 type FilterType = "all" | "active" | "completed" | "pending";
 type StatusVariant = "Active" | "Completed" | "Pending";
 // type PaymentStatusVariant = "Completed" | "Pending" | "Failed";
-const courseOptions = [
-  { id: 2, title: "graphic_design", title_display: "Graphic Design" },
-  { id: 3, title: "ui_ux_design", title_display: "UI/UX Design" },
-  {
-    id: 5,
-    title: "web_and_app_development",
-    title_display: "Web & App Development",
-  },
-  { id: 6, title: "video_editing", title_display: "Video Editing" },
-];
 
 const Students = () => {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [selectedFilter, setSelectedFilter] = useState<FilterType>("all");
   const [selectedStudent, setSelectedStudent] =
-    useState<StudentProfileData | null>(null);
+    useState<StudentProfile | null>(null);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [showModal, setShowModal] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
-  const [editFormData, setEditFormData] = useState<StudentProfileData | null>(
+  const [editFormData, setEditFormData] = useState<StudentProfile | null>(
     null
   );
+  const {batch} = useBatches();
   const [isSaving, setIsSaving] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
-
   const { studentProfile, loading, error } = useStudentProfile();
+  const { courseOptions } = useCourseOptions();
   const [imagePreview, setImagePreview] = useState<string>("");
 
-
+console.log(selectedStudent, "selected student");
   const students = useMemo((): NormalizedStudent[] => {
     if (!studentProfile || !Array.isArray(studentProfile)) return [];
 
@@ -137,13 +106,15 @@ const Students = () => {
       studentProfile
         // .filter((s: StudentProfileData) => s.can_access_profile === true)
         .map(
-          (s: StudentProfileData): NormalizedStudent => ({
+          (s: StudentProfile): NormalizedStudent => ({
             id: s.unique_id,
             name: s.name || "Unnamed",
             email: s.email || "N/A",
             phone: s.phone_number || "N/A",
+            batch: s.batch ? Number(s.batch) : 0,
             course: s.course_name || "Not Assigned",
             joinDate: s.created_at,
+            enrolled_at: s.enrolled_at || "N/A",
             status: s.can_access_profile ? "Active" : "Pending",
             progress: s.payment_completed ? 100 : 0,
             attendance: 0,
@@ -156,7 +127,6 @@ const Students = () => {
     );
   }, [studentProfile]);
 
-  // 🔍 Filter logic
   const filteredStudents = useMemo((): NormalizedStudent[] => {
     return students.filter((student) => {
       const matchesSearch =
@@ -212,7 +182,7 @@ const Students = () => {
   const handleViewStudent = (studentId: string): void => {
     if (Array.isArray(studentProfile)) {
       const student = studentProfile.find(
-        (s: StudentProfileData) => s.unique_id === studentId
+        (s: StudentProfile) => s.unique_id === studentId
       );
       if (student) {
         setSelectedStudent(student);
@@ -224,7 +194,7 @@ const Students = () => {
   const handleEditStudent = (studentId: string): void => {
     if (Array.isArray(studentProfile)) {
       const student = studentProfile.find(
-        (s: StudentProfileData) => s.unique_id === studentId
+        (s: StudentProfile) => s.unique_id === studentId
       );
       if (student) {
         setEditFormData({ ...student });
@@ -302,12 +272,15 @@ const Students = () => {
         String(editFormData.can_access_profile)
       );
 
-      if (editFormData.bach_number)
-        formData.append("bach_number", editFormData.bach_number);
-      formData.append(
-        "payment_completed",
-        String(editFormData.payment_completed)
-      );
+      if (editFormData.batch) {
+        formData.append("batch", String(editFormData.batch)); // send batch ID
+      }
+
+      if (editFormData.enrolled_at) {
+        const isoDate = new Date(editFormData.enrolled_at).toISOString();
+        formData.append("enrolled_at", isoDate);
+      }
+
       if (editFormData.paid_amount !== null)
         formData.append("paid_amount", String(editFormData.paid_amount));
 
@@ -346,7 +319,7 @@ const Students = () => {
   };
 
   const handleInputChange = (
-    field: keyof StudentProfileData,
+    field: keyof StudentProfile,
     value: string | boolean | number | File | null
   ): void => {
     if (editFormData) {
@@ -742,7 +715,7 @@ const Students = () => {
                       Current Course
                     </label>
                     <p className="text-sm font-semibold">
-                      {selectedStudent.course || "Not Enrolled"}
+                      {selectedStudent.course_name || "Not Enrolled"}
                     </p>
                   </div>
                   <div className="space-y-2">
@@ -760,7 +733,7 @@ const Students = () => {
                       Bach Number
                     </label>
                     <p className="text-sm font-semibold">
-                      {selectedStudent.bach_number || "N/A"}
+                      {selectedStudent.batch || "N/A"}
                     </p>
                   </div>
                   <div className="space-y-2 space-x-3">
@@ -1192,14 +1165,16 @@ const Students = () => {
                     Course & Payment Details
                   </CardTitle>
                 </CardHeader>
+
                 <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Course Select */}
                   <div className="space-y-2">
                     <Label htmlFor="course" className="text-sm font-medium">
                       Current Course
                     </Label>
                     <Select
                       onValueChange={(value) =>
-                        handleInputChange("course", value)
+                        handleInputChange("course", Number(value))
                       }
                       value={
                         editFormData.course ? String(editFormData.course) : ""
@@ -1219,29 +1194,68 @@ const Students = () => {
                             value={String(course.id)}
                             className="text-black"
                           >
-                            {course.title_display}
+                            {course.title || course.title}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
+
+                  {/* Batch Select */}
                   <div className="space-y-2">
-                    <Label
-                      htmlFor="bach_number"
-                      className="text-sm font-medium"
-                    >
-                      Bach Number
+                    <Label htmlFor="batch" className="text-sm font-medium">
+                      Batch
                     </Label>
-                    <Input
-                      id="bach_number"
-                      value={editFormData.bach_number || ""}
-                      onChange={(e) =>
-                        handleInputChange("bach_number", e.target.value)
+                    <Select
+                      onValueChange={(value) =>
+                        handleInputChange("batch", value ? Number(value) : null)
                       }
-                      placeholder="Enter bach number"
+                      value={
+                        editFormData.batch ? String(editFormData.batch) : ""
+                      }
                       disabled={isSaving}
-                    />
+                    >
+                      <SelectTrigger className="w-full border bg-muted/50 text-black">
+                        <SelectValue
+                          placeholder="Select a batch"
+                          className="text-black"
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {batch.map((b) => (
+                          <SelectItem
+                            key={b.id}
+                            value={String(b.id)}
+                            className="text-black"
+                          >
+                            {b.batch_number}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
+
+                  <div>
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="enrolled_at"
+                        className="text-sm font-medium"
+                      >
+                        Enrolled At
+                      </Label>
+                      <Input
+                        id="enrolled_at"
+                        type="date"
+                        value={editFormData?.enrolled_at?.slice(0, 10) || ""}
+                        onChange={(e) =>
+                          handleInputChange("enrolled_at", e.target.value)
+                        }
+                        disabled={isSaving}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Paid Amount */}
                   <div className="space-y-2">
                     <Label
                       htmlFor="paid_amount"
@@ -1265,6 +1279,8 @@ const Students = () => {
                       disabled={isSaving}
                     />
                   </div>
+
+                  {/* Payment Completed */}
                   <div className="space-y-2">
                     <Label className="text-sm font-medium flex items-center gap-2">
                       <Switch

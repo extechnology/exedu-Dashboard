@@ -14,6 +14,10 @@ import Certificates from "./pages/admin/Certificates";
 import Analytics from "./pages/admin/Analytics";
 import Settings from "./pages/admin/Settings";
 import NotificationsPage from "./pages/admin/Notifications";
+import ContactPage from "./pages/admin/Contact";
+import Enquiries from "./pages/admin/Enquiries";
+import BatchesPage from "./pages/admin/Batches";
+import TutorPage from "./pages/admin/Tutor";
 import { Login } from "./pages/admin/Login";
 
 
@@ -32,9 +36,13 @@ const App = () => (
           <Route path="/admin/courses" element={<CRMLayout><Courses /></CRMLayout>} />
           <Route path="/admin/attendance" element={<CRMLayout><Attendance /></CRMLayout>} />
           <Route path="/admin/certificates" element={<CRMLayout><Certificates /></CRMLayout>} />
-          <Route path="/admin/analytics" element={<CRMLayout><Analytics /></CRMLayout>} />
+          <Route path="/admin/analytics" element={<CRMLayout><Analytics /></CRMLayout>} /> 
+          <Route path="/admin/tutor" element={<CRMLayout><TutorPage /></CRMLayout>} /> 
           <Route path="/admin/settings" element={<CRMLayout><Settings /></CRMLayout>} />
+          <Route path="/admin/contacts" element={<CRMLayout><ContactPage /></CRMLayout>} />
           <Route path="/admin/notifications" element={<CRMLayout><NotificationsPage /></CRMLayout>} />
+          <Route path="/admin/enquiries" element={<CRMLayout><Enquiries /></CRMLayout>} />
+          <Route path="/admin/batch" element={<CRMLayout><BatchesPage /></CRMLayout>} />
           <Route path="/login" element={<Login />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

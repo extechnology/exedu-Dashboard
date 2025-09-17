@@ -41,6 +41,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import useCourseOptions from "@/hooks/useCourseOptions";
+import useTutorOptions from "@/api/getTutorOptions";
 
 interface EditCourseModalProps {
   open: boolean;
@@ -73,13 +75,18 @@ const EditCourseModal: React.FC<EditCourseModalProps> = ({
     sub_title: "",
     description: "",
     image: "",
+    tutor_id: "",
+    course_id: "",
     duration: "",
     tutor: "",
     price: "",
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
-
+  const { courseOptions } = useCourseOptions();
+  const { tutorOptions } = useTutorOptions();
+  console.log(courseOptions);
+  console.log(tutorOptions);
   // Initialize form data when course changes
   useEffect(() => {
     if (course && open) {
@@ -102,6 +109,8 @@ const EditCourseModal: React.FC<EditCourseModalProps> = ({
         description: "",
         image: "",
         duration: "",
+        tutor_id: "",
+        course_id: "",
         tutor: "",
         price: "",
       });
@@ -117,9 +126,6 @@ const EditCourseModal: React.FC<EditCourseModalProps> = ({
     }));
   };
 
-  const handleSelect = (value: string) => {
-    setFormData({ ...formData, title: value });
-  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -138,16 +144,30 @@ const EditCourseModal: React.FC<EditCourseModalProps> = ({
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-    const courseData = { ...formData };
-    if (imageFile) {
-      courseData.image = imageFile.name;
-    }
+  const courseData = new FormData();
 
-    await onSave(formData);
-  };
+  courseData.append("title", formData.title);
+  courseData.append("sub_title", formData.sub_title);
+  courseData.append("description", formData.description);
+  courseData.append("duration", formData.duration);
+  courseData.append("price", formData.price);
+
+  if (formData.tutor_id) {
+    courseData.append("tutor_id", String(formData.tutor_id));
+  }
+  if (formData.course_id) {
+    courseData.append("course", String(formData.course_id)); // ✅ numeric id
+  }
+  if (imageFile) {
+    courseData.append("image", imageFile);
+  }
+
+  await onSave(courseData as any);
+};
+
 
   function formatCourseName(courseName: string | null) {
     if (!courseName) return "No Course";
@@ -156,18 +176,6 @@ const EditCourseModal: React.FC<EditCourseModalProps> = ({
       .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
       .join(" ");
   }
-
-  const courseOptions = [
-    {
-      value: "ai_advanced_digital_marketing",
-      label: "AI Advanced Digital Marketing",
-    },
-    { value: "graphic_design", label: "Graphic Design" },
-    { value: "ui_ux_design", label: "UI/UX Design" },
-    { value: "web_and_app_development", label: "Web & App Development" },
-    { value: "video_editing", label: "Video Editing" },
-    { value: "robotics", label: "Robotics" },
-  ];
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -222,7 +230,8 @@ const EditCourseModal: React.FC<EditCourseModalProps> = ({
               <CardHeader className="pb-4">
                 <div className="flex items-center gap-2">
                   <CardTitle className="text-xl leading-tight">
-                    {formatCourseName(formData.title) || "Course Title"}
+                    {courseOptions.find((c) => c.id === formData.course_id)
+                      ?.title || "Course Title"}
                   </CardTitle>
                 </div>
                 <p className="text-sm text-muted-foreground line-clamp-2">
@@ -301,14 +310,22 @@ const EditCourseModal: React.FC<EditCourseModalProps> = ({
                         Course Title *
                       </Label>
                     </div>
-                    <Select onValueChange={handleSelect} value={formData.title}>
+                    
+                    <Select
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, course_id: Number(value) })
+                      }
+                      value={
+                        formData.course_id ? String(formData.course_id) : ""
+                      }
+                    >
                       <SelectTrigger className="w-full border bg-muted/50">
                         <SelectValue placeholder="Select a course" />
                       </SelectTrigger>
                       <SelectContent>
                         {courseOptions.map((course) => (
-                          <SelectItem key={course.value} value={course.value}>
-                            {course.label}
+                          <SelectItem key={course.id} value={String(course.id)}>
+                            {course.title}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -355,16 +372,27 @@ const EditCourseModal: React.FC<EditCourseModalProps> = ({
                         Instructor
                       </Label>
                     </div>
-                    <Input
-                      id="tutor"
-                      value={formData.tutor || ""}
+                    <select
+                      title="Select Instructor"
+                      id="tutor_id"
+                      name="tutor_id"
+                      className="w-full px-3 py-2 border  bg-muted/50 rounded-lg focus:ring-2 focus:ring-violet-500 outline-none"
+                      value={formData.tutor_id}
                       onChange={(e) =>
-                        handleInputChange("tutor", e.target.value)
+                        setFormData({
+                          ...formData,
+                          tutor_id: Number(e.target.value) || "",
+                        })
                       }
-                      placeholder="Enter instructor name"
-                      disabled={isSaving}
-                      className="border-0 bg-muted/50"
-                    />
+                      required
+                    >
+                      <option value="">Select Tutor</option>
+                      {tutorOptions.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.name}
+                        </option>
+                      ))}
+                    </select>
                   </CardContent>
                 </Card>
 

@@ -8,33 +8,66 @@ export interface LoginResponse {
   refresh: string;
 }
 
+// export interface StudentProfile {
+//   unique_id: string;
+//   name: string;
+//   email: string;
+//   phone_number: string;
+//   user: number;
+//   id: number;
+//   title: string;
+//   course_name: string;
+//   secondary_school: string;
+//   secondary_year: string;
+//   university: string;
+//   university_year: string;
+//   university_major: string;
+//   course: string;
+//   enrolled_at: string;
+//   batch_number: string;
+//   payment_completed: boolean;
+//   paid_amount: number;
+//   paid_at: string;
+//   can_access_profile: boolean;
+//   is_public: boolean;
+//   created_at: string;
+//   interests: string;
+//   experience: string;
+//   skills: string;
+//   career_objective: string;
+//   profile_image: string;
+//   batch: number;
+// }
+
+
 export interface StudentProfile {
   unique_id: string;
+  profile_image: File | null;
   name: string;
   email: string;
-  phone_number: string;
-  user: number;
-  id: number;
-  title: string;
-  secondary_school: string;
-  secondary_year: string;
-  university: string;
-  university_year: string;
-  university_major: string;
-  course: string;
-  enrolled_at: string;
-  batch_number: string;
-  payment_completed: boolean;
-  paid_amount: number;
-  paid_at: string;
-  can_access_profile: boolean;
-  is_public: boolean;
+  batch: number | null;
+  batch_number: string | null;
+  phone_number: string | null;
+  secondary_school: string | null;
+  secondary_year: string | null;
+  university: string | null;
+  university_major: string | null;
+  university_year: string | null;
+  career_objective: string;
+  skills: string;
+  experience: string;
+  course_name: string | null;
+  interests: string;
   created_at: string;
-  interests: string[];
-  experience: string[];
-  skills: string[];
-  career_objective: string[];
-  profile_image: string;
+  is_public: boolean;
+  can_access_profile: boolean;
+  course: string | null;
+  enrolled_at: string | null;
+  bach_number: string | null;
+  payment_completed: boolean;
+  paid_amount: number | null;
+  paid_at: string | null;
+  user: number;
 }
 
 
@@ -49,6 +82,8 @@ export interface Course {
   price?: string;
   duration?: string;
   students?: number;
+  tutor_id: number | "";
+  course_id: number | "";
   startDate?: string;
   status?: "Active" | "Upcoming" | "Completed" | "Draft";
 }
@@ -63,4 +98,49 @@ export interface Notification {
   is_read: boolean;
   created_at: string;
   related_model: string;
+}
+
+
+export interface Contact {
+  id: number;
+  name: string;
+  email: string;
+  number: string;
+  course: string;
+  submitted_at: string;}
+
+export interface Enquire {
+  id : number;
+  name: string;
+  email: string;
+  phone: string;
+  title: string;
+  created_at: string;
+}
+
+
+export interface CourseOptions {
+  id: number;
+  value: string;
+  label: string;
+  title: string;
+}
+
+
+type Tutor = {
+  id: number;
+  name: string;
+  email: string;
+  phone_number: string;
+};
+
+export interface Batch {
+  id: number;
+  batch_number: string;
+  course: number;
+  tutor: Tutor;
+  date: string;
+  time_start: string;
+  duration: string;
+  course_name: string;
 }

@@ -106,7 +106,7 @@ const Certificates = () => {
           >
             + Issue Certificate
           </Button>
-          <CertificateModal
+          {/* <CertificateModal
             open={showModal}
             onClose={() => setShowModal(false)}
             onSuccess={refreshCertificates}
@@ -121,7 +121,7 @@ const Certificates = () => {
                   ]
                 : []
             }
-          />
+          /> */}
         </div>
       </div>
 
