@@ -39,7 +39,6 @@ export type AttendanceItem = {
 };
 
 
-
 export default function useAttendance(date: Date, courseId?: number) {
   const [records, setRecords] = useState<AttendanceItem[]>([]); // <-- API response shape
   const [loading, setLoading] = useState(false);
@@ -62,7 +61,7 @@ export default function useAttendance(date: Date, courseId?: number) {
         setLoading(false);
       }
     };
-    if (courseId) fetchAttendance(); // only fetch if courseId provided
+    if (courseId) fetchAttendance(); 
   }, [formattedDate, courseId]);
 
   const saveAttendance = async (updates: AttendanceUpdate[]) => {

@@ -20,6 +20,7 @@ import {
 import axiosInstance from "@/api/axiosInstance";
 import { toast } from "sonner";
 import { Image as ImageIcon, Loader2 } from "lucide-react";
+import useTutorOptions from "@/api/getTutorOptions";
 
 interface AddCourseModalProps {
   open: boolean;
@@ -49,18 +50,22 @@ export default function AddCourseModal({
     sub_title: "",
     description: "",
     duration: "",
-    tutor: "",
+    tutor_id: "",
     price: "",
     image: null as File | null,
   });
   const [imagePreview, setImagePreview] = useState<string>("");
   const [loading, setLoading] = useState(false);
+  const {tutorOptions} = useTutorOptions();
+  console.log(tutorOptions, "tutorOptions");
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+const handleChange = (
+  e: React.ChangeEvent<
+    HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+  >
+) => {
+  setFormData({ ...formData, [e.target.name]: e.target.value });
+};
 
   const handleSelect = (value: string) => {
     setFormData({ ...formData, title: value });
@@ -170,12 +175,22 @@ export default function AddCourseModal({
 
             <div className="space-y-1">
               <Label>Tutor</Label>
-              <Input
-                name="tutor"
-                placeholder="Tutor name"
-                value={formData.tutor}
+              
+              <select
+                title="Select Tutor"
+                name="tutor_id"
+                value={formData.tutor_id}
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-violet-500 outline-none"
                 onChange={handleChange}
-              />
+                required
+              >
+                <option value="">Select Tutor</option>
+                {tutorOptions.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 

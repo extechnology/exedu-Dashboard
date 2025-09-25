@@ -41,6 +41,7 @@ export interface LoginResponse {
 
 
 export interface StudentProfile {
+  id: number;
   unique_id: string;
   profile_image: File | null;
   name: string;
@@ -143,4 +144,13 @@ export interface Batch {
   time_start: string;
   duration: string;
   course_name: string;
+}
+
+
+export interface Session {
+  title:string;
+  start_time :string;
+  duration:string;
+  students:StudentProfile[];
+  tutor:Tutor;
 }

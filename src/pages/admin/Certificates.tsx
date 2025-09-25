@@ -1,4 +1,4 @@
-import { useState,useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,14 +25,15 @@ import CertificateModal from "@/components/ui/certificateModal";
 import axiosInstance from "@/api/axiosInstance";
 import useStudentProfile from "@/hooks/useStudentProfile";
 
-
-
 const Certificates = () => {
   const [certificates, setCertificates] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [showModal, setShowModal] = useState(false);
   const { studentProfile } = useStudentProfile();
+  console.log(studentProfile, "studentProfile ");
+  console.log(certificates, "certificates ");
+
 
   const refreshCertificates = async () => {
     try {
@@ -44,9 +45,8 @@ const Certificates = () => {
   };
 
   useEffect(() => {
-    refreshCertificates(); 
+    refreshCertificates();
   }, []);
-
 
   const filteredCertificates = certificates.filter((cert) => {
     const matchesSearch =
@@ -91,7 +91,7 @@ const Certificates = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">
+          <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-fuchsia-500">
             Certificate Management
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -111,14 +111,12 @@ const Certificates = () => {
             onClose={() => setShowModal(false)}
             onSuccess={refreshCertificates}
             students={
-              studentProfile
-                ? [
-                    {
-                      user: studentProfile.id, // profile id (FK in Certificate)
-                      name: studentProfile.name,
-                      course: studentProfile.course ?? "", // safer
-                    },
-                  ]
+              studentProfile.length > 0
+                ? studentProfile.map((student: any) => ({
+                    user: student.unique_id, 
+                    name: student.name ?? "Unnamed",
+                    course: student.course_name ?? "",
+                  }))
                 : []
             }
           /> */}

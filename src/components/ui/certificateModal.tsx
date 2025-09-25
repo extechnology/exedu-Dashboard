@@ -11,18 +11,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { StudentProfile } from "@/types";
 
-interface Student {
-  user: number; // comes from profile API
-  name: string;
-  course?: string | null;
-}
 
 interface CertificateModalProps {
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  students?: Student[];
+  students?: StudentProfile[];
 }
 
 export default function CertificateModal({
@@ -33,6 +29,7 @@ export default function CertificateModal({
 }: CertificateModalProps) {
   const [file, setFile] = useState<File | null>(null);
   const [selectedStudent, setSelectedStudent] = useState<number | null>(null);
+
   const [selectedCourse, setSelectedCourse] = useState<string>("");
   const [description, setDescription] = useState("");
   const [grade, setGrade] = useState("");
@@ -66,9 +63,9 @@ export default function CertificateModal({
     formData.append("certificate_file", file);
     formData.append("description", description);
     formData.append("grade", grade);
-    formData.append("profile", String(selectedStudent)); 
+    formData.append("profile", String(selectedStudent));
 
-    if (selectedCourse) formData.append("course", selectedCourse);
+    if (selectedCourse) formData.append("course", String(selectedCourse));
 
     try {
       setLoading(true);
@@ -118,7 +115,7 @@ export default function CertificateModal({
             >
               <option value="">-- Select a student --</option>
               {(students ?? []).map((student) => (
-                <option key={student.user} value={student.user}>
+                <option key={student.id} value={student.id}>
                   {student.name}
                 </option>
               ))}

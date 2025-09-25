@@ -25,31 +25,32 @@ import useAttendance from "@/hooks/useAttendance";
 import useCourse from "@/hooks/useCourse";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
+import useBatches from "@/hooks/useBatch";
 
 type Status = "Present" | "Absent" | "Late" | null;
 
 const Attendance = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
+  const [selectedBatch, setSelectedBatch] = useState<string | null>(null);
 
   const { studentProfile, loading, error } = useStudentProfile();
   const { course, loading: courseLoading, error: courseError } = useCourse();
   const CourseTitles = Array.isArray(course) ? course.map((c) => c.title) : [];
   const [currentPage, setCurrentPage] = useState(1);
   const studentsPerPage = 5;
+  const { batch } = useBatches();
+  console.log(batch, "batch");
 
   const selectedCourseObj = Array.isArray(course)
-    ? course.find((c: any) => c.title === selectedCourse)
+    ? course.find((c: any) => c.title === selectedBatch)
     : null;
-  const courseId = selectedCourse ? Number(selectedCourse) : undefined;
-
+  const batchId = selectedBatch ? Number(selectedBatch) : undefined;
   const {
     records,
     saveAttendance,
     loading: attendanceLoading,
     error: attendanceError,
-  } = useAttendance(selectedDate, courseId);
-  console.log("Attendance Records:", records);
+  } = useAttendance(selectedDate, batchId);
 
   const accessibleStudents = useMemo(
     () =>
@@ -59,15 +60,11 @@ const Attendance = () => {
     [studentProfile]
   );
 
-  const CourseOptions = Array.isArray(course)
-    ? course.map((c: any) => {
-        const rawLabel = c.course_name || c.title;
-        const formattedLabel = rawLabel
-          .replace(/_/g, " ")
-          .replace(/\b\w/g, (char) => char.toUpperCase());
-
+  const BatchOptions = Array.isArray(batch)
+    ? batch.map((b: any) => {
+        const formattedLabel = `Batch ${b.batch_number} - ${b.course_name} (${b.time_start})`;
         return (
-          <SelectItem key={c.id} value={String(c.id)}>
+          <SelectItem key={b.id} value={String(b.id)}>
             {formattedLabel}
           </SelectItem>
         );
@@ -75,26 +72,22 @@ const Attendance = () => {
     : [];
 
   const firstCourseValue =
-    CourseOptions.length > 0 ? (CourseOptions[0].props.value as string) : "";
-
-  useEffect(() => {
-    if (CourseOptions.length > 0 && !selectedCourse) {
-      setSelectedCourse(CourseOptions[0].props.value as string);
-    }
-  }, [CourseOptions, selectedCourse]);
+    BatchOptions.length > 0 ? (BatchOptions[0].props.value as string) : "";
 
   const filteredStudents = useMemo(() => {
-    if (!selectedCourse) {
-      return accessibleStudents.filter((s: any) => s.course);
+    if (!selectedBatch) {
+      return accessibleStudents.filter((s: any) => s.batch);
     }
     return accessibleStudents.filter(
-      (s: any) => String(s.course) === selectedCourse
+      (s: any) => String(s.batch) === selectedBatch
     );
-  }, [accessibleStudents, selectedCourse]);
+  }, [accessibleStudents, selectedBatch]);
 
   useEffect(() => {
-    setCurrentPage(1);
-  }, [selectedCourse, filteredStudents.length]);
+    if (BatchOptions.length > 0 && !selectedBatch) {
+      setSelectedBatch(BatchOptions[0].props.value as string);
+    }
+  }, [BatchOptions, selectedBatch]);
 
   const totalPages = Math.ceil(filteredStudents.length / studentsPerPage);
 
@@ -221,7 +214,7 @@ const Attendance = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">
+          <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-fuchsia-500">
             Attendance Management
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -336,7 +329,7 @@ const Attendance = () => {
                   <Button
                     className="bg-gradient-to-r from-primary to-accent hover:opacity-90"
                     onClick={() => {
-                      if (!courseId) {
+                      if (!batchId) {
                         alert(
                           "Please select a course before saving attendance"
                         );
@@ -363,13 +356,13 @@ const Attendance = () => {
                 </div>
                 <div className="flex gap-2 w-full sm:w-auto">
                   <Select
-                    value={selectedCourse}
-                    onValueChange={setSelectedCourse}
+                    value={selectedBatch}
+                    onValueChange={setSelectedBatch}
                   >
                     <SelectTrigger className="w-full sm:w-[240px]">
-                      <SelectValue placeholder="Filter by course" />
+                      <SelectValue placeholder="Filter by batch" />
                     </SelectTrigger>
-                    <SelectContent>{CourseOptions}</SelectContent>
+                    <SelectContent>{BatchOptions}</SelectContent>
                   </Select>
                 </div>
               </div>

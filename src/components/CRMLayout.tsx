@@ -16,7 +16,8 @@ import {
   CircleUser,
   Info,
   ClockAlert,
-  UserRoundPlus
+  UserRoundPlus,
+  BookOpenCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,6 +42,7 @@ interface CRMLayoutProps {
 const navigation = [
   { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { name: "Tutor", href: "/admin/tutor", icon: UserRoundPlus },
+  { name: "Session", href: "/admin/session", icon: BookOpenCheck },
   { name: "Batch", href: "/admin/batch", icon: ClockAlert },
   { name: "Students", href: "/admin/students", icon: Users },
   { name: "Courses", href: "/admin/courses", icon: BookOpen },

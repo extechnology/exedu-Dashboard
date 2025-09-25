@@ -41,7 +41,8 @@ export default function BatchesPage() {
     (b) =>
       b.batch_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (b.tutor &&
-        b.tutor.name?.toLowerCase().includes(searchQuery.toLowerCase()))
+        b.tutor.name?.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      b.course_name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const getStudentCount = (batchNumber: string) => {
@@ -50,14 +51,13 @@ export default function BatchesPage() {
     ).length;
   };
 
-    function formatCourseName(course: string | null) {
-      if (!course) return "No Course";
-      return course
-        .split("_")
-        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-        .join(" ");
-    }
-
+  function formatCourseName(course: string | null) {
+    if (!course) return "No Course";
+    return course
+      .split("_")
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ");
+  }
 
   return (
     <div className="min-h-screen p-6">
@@ -65,7 +65,7 @@ export default function BatchesPage() {
       <div className="mb-8">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
           <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
+            <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-fuchsia-500 mb-2">
               Batch Management
             </h1>
             <p className="text-gray-600 text-lg">
@@ -337,13 +337,21 @@ export default function BatchesPage() {
                       >
                         <div className="flex items-center gap-4">
                           <div className="relative">
-                            <img
-                              src={`${import.meta.env.VITE_MEDIA_BASE_URL}${
-                                student.profile_image
-                              }`}
-                              alt={student.name}
-                              className="w-14 h-14 rounded-full object-cover border-2 border-gray-200"
-                            />
+                            {student.profile_image ? (
+                              <img
+                                src={`${import.meta.env.VITE_MEDIA_BASE_URL}${
+                                  student.profile_image
+                                }`}
+                                alt={student.name}
+                                className="w-14 h-14 rounded-full object-cover border-2 border-gray-200"
+                              />
+                            ) : (
+                              <div className="h-14 w-14 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-sm font-semibold text-primary-foreground">
+                                {student.name
+                                  ? student.name.charAt(0).toUpperCase()
+                                  : "?"}
+                              </div>
+                            )}
                             <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white"></div>
                           </div>
                           <div className="flex-1">

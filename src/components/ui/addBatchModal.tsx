@@ -20,6 +20,11 @@ export default function AddBatchModal({
   console.log(tutorOptions, "tutorOptions");
   console.log(courseOptions, "courseOptions");
 
+  const [time, setTime] = useState("");
+
+  const hours = Array.from({ length: 12 }, (_, i) => i + 1); // 1–12
+  const minutes = ["00", "15", "30", "45"];
+  const periods = ["AM", "PM"];
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [formData, setFormData] = useState({
@@ -51,7 +56,7 @@ export default function AddBatchModal({
       const payload = {
         ...formData,
         tutor_id: Number(formData.tutor_id),
-        course: Number(formData.course), 
+        course: Number(formData.course),
       };
 
       await axiosInstance.post("/batches/", payload, {
@@ -139,14 +144,61 @@ export default function AddBatchModal({
           />
 
           {/* Time */}
-          <input
-            title="Select Time"
-            type="time"
-            name="time_start"
-            value={formData.time_start}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-violet-500 outline-none"
-          />
+          <div className="flex gap-2 items-center">
+            {/* Hours */}
+            <select
+              title="Select Time"
+              value={time.split(":")[0] || ""}
+              onChange={(e) => setTime(e.target.value)}
+              className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-violet-500"
+            >
+              <option value="">HH</option>
+              {hours.map((h) => (
+                <option key={h} value={h}>
+                  {h}
+                </option>
+              ))}
+            </select>
+
+            {/* Minutes */}
+            <select
+              title="Select Time"
+              value={time.split(":")[1]?.slice(0, 2) || ""}
+              onChange={(e) =>
+                setTime(
+                  (prev) => `${prev.split(":")[0] || ""}:${e.target.value}`
+                )
+              }
+              className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-violet-500"
+            >
+              <option value="">MM</option>
+              {minutes.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
+
+            {/* AM/PM */}
+            <select
+              title="Select Time"
+              value={time.split(" ")[1] || ""}
+              onChange={(e) =>
+                setTime((prev) => `${prev.split(" ")[0]} ${e.target.value}`)
+              }
+              className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-violet-500"
+            >
+              <option value="">AM/PM</option>
+              {periods.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </select>
+            <div>
+              <p className="text-gray-500 font-medium">Time: {time}</p>
+            </div>
+          </div>
 
           {/* Duration */}
           <input

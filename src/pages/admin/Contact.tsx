@@ -7,7 +7,7 @@ const ContactPage: React.FC = () => {
   return (
     <div className="min-h-screen ">
       <div className="max-w-7xl mx-auto bg-white shadow-lg rounded-2xl p-6">
-        <h1 className="text-2xl font-bold text-gray-800 mb-6">
+        <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-fuchsia-500 mb-6">
           Contacts
         </h1>
 

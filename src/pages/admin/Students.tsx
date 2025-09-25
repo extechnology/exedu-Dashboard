@@ -364,7 +364,7 @@ console.log(selectedStudent, "selected student");
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">
+          <h1 className="text-3xl font-bold  text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-fuchsia-500">
             Student Management
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -382,10 +382,10 @@ console.log(selectedStudent, "selected student");
       </div>
 
       {/* Search and Filters */}
-      <Card className="border-0 shadow-lg">
+      <Card className="border-0 shadow-lg rounded-2xl">
         <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
+          <div className="flex  flex-col sm:flex-row gap-4">
+            <div className="relative flex-1 ">
               <Search className="absolute left-3 h-4 w-4 text-muted-foreground top-3" />
               <Input
                 placeholder="Search students by name, email, or course..."
@@ -433,7 +433,7 @@ console.log(selectedStudent, "selected student");
         {filteredStudents.map((student) => (
           <Card
             key={student.id}
-            className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-card to-card/50"
+            className="border-0 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-card to-card/50"
           >
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">

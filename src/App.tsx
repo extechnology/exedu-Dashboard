@@ -18,6 +18,7 @@ import ContactPage from "./pages/admin/Contact";
 import Enquiries from "./pages/admin/Enquiries";
 import BatchesPage from "./pages/admin/Batches";
 import TutorPage from "./pages/admin/Tutor";
+import SessionPage from "./pages/admin/Session";
 import { Login } from "./pages/admin/Login";
 
 
@@ -35,6 +36,7 @@ const App = () => (
           <Route path="/admin/students" element={<CRMLayout><Students /></CRMLayout>} />
           <Route path="/admin/courses" element={<CRMLayout><Courses /></CRMLayout>} />
           <Route path="/admin/attendance" element={<CRMLayout><Attendance /></CRMLayout>} />
+          <Route path="/admin/session" element={<CRMLayout><SessionPage /></CRMLayout>} />
           <Route path="/admin/certificates" element={<CRMLayout><Certificates /></CRMLayout>} />
           <Route path="/admin/analytics" element={<CRMLayout><Analytics /></CRMLayout>} /> 
           <Route path="/admin/tutor" element={<CRMLayout><TutorPage /></CRMLayout>} /> 
