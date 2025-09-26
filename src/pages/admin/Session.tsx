@@ -3,35 +3,19 @@ import axiosInstance from "@/api/axiosInstance";
 import ExeduButton from "@/components/ui/exedu-button";
 import SessionModal from "@/components/ui/session-modal";
 import { Calendar, Clock, Users, User, Eye, X } from "lucide-react";
+import { Session } from "@/types";
+import useSession from "@/hooks/useSession";
 
-interface Tutor {
-  id: number;
-  name: string;
-  profile_image?: string;
-}
 
-interface Student {
-  id: number;
-  name: string;
-  profile_image?: string;
-}
-
-interface Session {
-  id: number;
-  title?: string;
-  start_time: string;
-  duration: string;
-  tutor: Tutor | null;
-  students: Student[];
-}
 
 const SessionPage: React.FC = () => {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const {session} = useSession()
+  console.log(session,"session in session page")
 
-  // Fetch sessions
   useEffect(() => {
     const fetchSessions = async () => {
       try {
@@ -44,18 +28,15 @@ const SessionPage: React.FC = () => {
     fetchSessions();
   }, []);
 
-  // Add new session after modal save
   const handleSave = (newSession: Session) => {
     setSessions((prev) => [...prev, newSession]);
   };
 
-  // Handle session card click
   const handleSessionClick = (session: Session) => {
     setSelectedSession(session);
     setShowDetailModal(true);
   };
 
-  // Format date and time
   const formatDateTime = (dateTime: string) => {
     const date = new Date(dateTime);
     return {
@@ -135,7 +116,7 @@ const SessionPage: React.FC = () => {
                   <div className="flex items-center">
                     <User className="w-4 h-4 mr-3 text-purple-500" />
                     <div className="flex items-center">
-                      {session.tutor?.profile_image ? (
+                      {session.tutor_details?.profile_image ? (
                         <img
                           src={session.tutor.profile_image}
                           alt={session.tutor.name}
@@ -156,8 +137,8 @@ const SessionPage: React.FC = () => {
                   <div className="flex items-center">
                     <Users className="w-4 h-4 mr-3 text-emerald-500" />
                     <span className="text-sm text-gray-700">
-                      {session.students.length} student
-                      {session.students.length !== 1 ? "s" : ""}
+                      {session.student_details.length} student
+                      {session.student_details.length !== 1 ? "s" : ""}
                     </span>
                   </div>
                 </div>
@@ -165,27 +146,40 @@ const SessionPage: React.FC = () => {
                 {/* Card Footer */}
                 <div className="px-4 pb-4">
                   <div className="flex -space-x-2">
-                    {session.students.slice(0, 3).map((student, index) => (
-                      <div key={student.id} className="relative">
-                        {student.profile_image ? (
-                          <img
-                            src={student.profile_image}
-                            alt={student.name}
-                            className="w-8 h-8 rounded-full border-2 border-white shadow-sm"
-                          />
-                        ) : (
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 border-2 border-white shadow-sm flex items-center justify-center">
-                            {/* <span className="text-xs font-semibold text-white">
-                              {student.name.charAt(0).toUpperCase()}
-                            </span> */}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                    {session.students.length > 3 && (
+                    {session.student_details.slice(0, 3).map((student, index) => {
+                      let imgSrc = "";
+
+                      if (student.profile_image) {
+                        if (typeof student.profile_image === "string") {
+                          imgSrc = student.profile_image;
+                        } else if (student.profile_image instanceof File) {
+                          imgSrc = URL.createObjectURL(student.profile_image);
+                        }
+                      }
+
+                      return (
+                        <div key={student.id} className="relative">
+                          {imgSrc ? (
+                            <img
+                              src={imgSrc}
+                              alt={student.name}
+                              className="w-8 h-8 rounded-full border-2 border-white shadow-sm"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 border-2 border-white shadow-sm flex items-center justify-center">
+                              <span className="text-xs font-semibold text-white">
+                                {student.name?.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+
+                    {session.student_details.length > 3 && (
                       <div className="w-8 h-8 rounded-full bg-gray-200 border-2 border-white shadow-sm flex items-center justify-center">
                         <span className="text-xs font-semibold text-gray-600">
-                          +{session.students.length - 3}
+                          +{session.student_details.length - 3}
                         </span>
                       </div>
                     )}
@@ -330,34 +324,35 @@ const SessionPage: React.FC = () => {
                 </div>
                 {selectedSession.students.length > 0 ? (
                   <div className="grid grid-cols-1 gap-3">
-                    {selectedSession.students.map((student, index) => (
-                      <div
-                        key={student.id}
-                        className="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                      >
-                        {student.profile_image ? (
-                          <img
-                            src={student.profile_image}
-                            alt={student.name}
-                            className="w-10 h-10 rounded-full border-2 border-gray-200 mr-3"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center mr-3">
-                            {/* <span className="text-sm font-semibold text-white">
-                              {student.name.charAt(0).toUpperCase()}
-                            </span> */}
-                          </div>
-                        )}
-                        <div>
-                          <p className="font-medium text-gray-800">
-                            {student.name}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            Student #{index + 1}
-                          </p>
+                    {selectedSession.students.slice(0, 3).map((student) => {
+                      let imgSrc: string | null = null;
+
+                      if (student.profile_image) {
+                        if (typeof student.profile_image === "string") {
+                          imgSrc = student.profile_image;
+                        } else if (student.profile_image instanceof File) {
+                          imgSrc = URL.createObjectURL(student.profile_image);
+                        }
+                      }
+
+                      return (
+                        <div key={student.id} className="relative">
+                          {imgSrc ? (
+                            <img
+                              src={imgSrc} // now TypeScript knows this is a string
+                              alt={student.name || "Student"}
+                              className="w-8 h-8 rounded-full border-2 border-white shadow-sm"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 border-2 border-white shadow-sm flex items-center justify-center">
+                              <span className="text-xs font-semibold text-white">
+                                {student.name?.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="text-center py-8 text-gray-500">

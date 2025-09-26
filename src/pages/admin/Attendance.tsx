@@ -25,32 +25,31 @@ import useAttendance from "@/hooks/useAttendance";
 import useCourse from "@/hooks/useCourse";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
-import useBatches from "@/hooks/useBatch";
+import useSession from "@/hooks/useSession";
 
 type Status = "Present" | "Absent" | "Late" | null;
 
 const Attendance = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [selectedBatch, setSelectedBatch] = useState<string | null>(null);
+  const [selectedSession, setSelectedSession] = useState<string | null>(null);
 
   const { studentProfile, loading, error } = useStudentProfile();
   const { course, loading: courseLoading, error: courseError } = useCourse();
   const CourseTitles = Array.isArray(course) ? course.map((c) => c.title) : [];
   const [currentPage, setCurrentPage] = useState(1);
   const studentsPerPage = 5;
-  const { batch } = useBatches();
-  console.log(batch, "batch");
-
-  const selectedCourseObj = Array.isArray(course)
-    ? course.find((c: any) => c.title === selectedBatch)
+  const { session } = useSession();
+  console.log(session, "sessions");
+  const selectedSessionObj = Array.isArray(course)
+    ? course.find((c: any) => c.title === selectedSession)
     : null;
-  const batchId = selectedBatch ? Number(selectedBatch) : undefined;
+  const sessionId = selectedSession ? Number(selectedSession) : undefined;
   const {
     records,
     saveAttendance,
     loading: attendanceLoading,
     error: attendanceError,
-  } = useAttendance(selectedDate, batchId);
+  } = useAttendance(selectedDate, sessionId);
 
   const accessibleStudents = useMemo(
     () =>
@@ -60,11 +59,11 @@ const Attendance = () => {
     [studentProfile]
   );
 
-  const BatchOptions = Array.isArray(batch)
-    ? batch.map((b: any) => {
-        const formattedLabel = `Batch ${b.batch_number} - ${b.course_name} (${b.time_start})`;
+  const SessionOptions = Array.isArray(session)
+    ? session.map((s: any) => {
+        const formattedLabel = `Session ${s.title} - ${s.duration} (${s.start_time})`;
         return (
-          <SelectItem key={b.id} value={String(b.id)}>
+          <SelectItem key={s.id} value={String(s.id)}>
             {formattedLabel}
           </SelectItem>
         );
@@ -72,22 +71,22 @@ const Attendance = () => {
     : [];
 
   const firstCourseValue =
-    BatchOptions.length > 0 ? (BatchOptions[0].props.value as string) : "";
+    SessionOptions.length > 0 ? (SessionOptions[0].props.value as string) : "";
 
   const filteredStudents = useMemo(() => {
-    if (!selectedBatch) {
-      return accessibleStudents.filter((s: any) => s.batch);
+    if (!selectedSession) {
+      return accessibleStudents.filter((s: any) => s.title);
     }
     return accessibleStudents.filter(
-      (s: any) => String(s.batch) === selectedBatch
+      (s: any) => String(s.student_details) === selectedSession
     );
-  }, [accessibleStudents, selectedBatch]);
+  }, [accessibleStudents, selectedSession]);
 
   useEffect(() => {
-    if (BatchOptions.length > 0 && !selectedBatch) {
-      setSelectedBatch(BatchOptions[0].props.value as string);
+    if (SessionOptions.length > 0 && !selectedSession) {
+      setSelectedSession(SessionOptions[0].props.value as string);
     }
-  }, [BatchOptions, selectedBatch]);
+  }, [SessionOptions, selectedSession]);
 
   const totalPages = Math.ceil(filteredStudents.length / studentsPerPage);
 
@@ -329,7 +328,7 @@ const Attendance = () => {
                   <Button
                     className="bg-gradient-to-r from-primary to-accent hover:opacity-90"
                     onClick={() => {
-                      if (!batchId) {
+                      if (!sessionId) {
                         alert(
                           "Please select a course before saving attendance"
                         );
@@ -356,13 +355,13 @@ const Attendance = () => {
                 </div>
                 <div className="flex gap-2 w-full sm:w-auto">
                   <Select
-                    value={selectedBatch}
-                    onValueChange={setSelectedBatch}
+                    value={selectedSession}
+                    onValueChange={setSelectedSession}
                   >
                     <SelectTrigger className="w-full sm:w-[240px]">
-                      <SelectValue placeholder="Filter by batch" />
+                      <SelectValue placeholder="Filter by Session" />
                     </SelectTrigger>
-                    <SelectContent>{BatchOptions}</SelectContent>
+                    <SelectContent>{SessionOptions}</SelectContent>
                   </Select>
                 </div>
               </div>

@@ -69,6 +69,7 @@ export interface StudentProfile {
   paid_amount: number | null;
   paid_at: string | null;
   user: number;
+  progress:number;
 }
 
 
@@ -133,6 +134,7 @@ type Tutor = {
   name: string;
   email: string;
   phone_number: string;
+  profile_image:string;
 };
 
 export interface Batch {
@@ -147,10 +149,27 @@ export interface Batch {
 }
 
 
+type TutorDetails = {
+  id: number;
+  name?: string;
+  profile_image?: string | File | null;
+} | null; 
+
+
+type StudentDetails = {
+  id: number;
+  name?: string;
+  profile_image?: string | File | null;
+}[];
+
+
 export interface Session {
-  title:string;
-  start_time :string;
-  duration:string;
-  students:StudentProfile[];
-  tutor:Tutor;
+  title: string;
+  id: number;
+  start_time: string;
+  duration: string;
+  students: StudentProfile[];
+  student_details:StudentDetails;
+  tutor_details : TutorDetails;
+  tutor: Tutor;
 }

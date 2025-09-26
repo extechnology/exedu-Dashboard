@@ -57,7 +57,6 @@ import useBatches from "@/hooks/useBatch";
 import useCourseOptions from "@/hooks/useCourseOptions";
 import type { StudentProfile } from "@/types";
 
-
 interface NormalizedStudent {
   id: string;
   name: string;
@@ -83,22 +82,21 @@ type StatusVariant = "Active" | "Completed" | "Pending";
 const Students = () => {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [selectedFilter, setSelectedFilter] = useState<FilterType>("all");
-  const [selectedStudent, setSelectedStudent] =
-    useState<StudentProfile | null>(null);
+  const [selectedStudent, setSelectedStudent] = useState<StudentProfile | null>(
+    null
+  );
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [showModal, setShowModal] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
-  const [editFormData, setEditFormData] = useState<StudentProfile | null>(
-    null
-  );
-  const {batch} = useBatches();
+  const [editFormData, setEditFormData] = useState<StudentProfile | null>(null);
+  const { batch } = useBatches();
   const [isSaving, setIsSaving] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const { studentProfile, loading, error } = useStudentProfile();
   const { courseOptions } = useCourseOptions();
   const [imagePreview, setImagePreview] = useState<string>("");
 
-console.log(selectedStudent, "selected student");
+  console.log(selectedStudent, "selected student");
   const students = useMemo((): NormalizedStudent[] => {
     if (!studentProfile || !Array.isArray(studentProfile)) return [];
 
@@ -116,7 +114,7 @@ console.log(selectedStudent, "selected student");
             joinDate: s.created_at,
             enrolled_at: s.enrolled_at || "N/A",
             status: s.can_access_profile ? "Active" : "Pending",
-            progress: s.payment_completed ? 100 : 0,
+            progress: s.progress || 0,
             attendance: 0,
             avatar: s.name ? s.name.slice(0, 2).toUpperCase() : "ST",
             profileImage: s.profile_image,
@@ -227,7 +225,7 @@ console.log(selectedStudent, "selected student");
 
   const handleSaveChanges = async (): Promise<void> => {
     if (!editFormData || !validateForm()) return;
-    console.log(editFormData,"editFormData");
+    console.log(editFormData, "editFormData");
 
     setIsSaving(true);
 
@@ -257,7 +255,6 @@ console.log(selectedStudent, "selected student");
         formData.append("course", String(editFormData.course)); // must be ID (number → string)
       }
 
-
       if (editFormData.career_objective)
         formData.append("career_objective", editFormData.career_objective);
       if (editFormData.skills) formData.append("skills", editFormData.skills);
@@ -273,7 +270,11 @@ console.log(selectedStudent, "selected student");
       );
 
       if (editFormData.batch) {
-        formData.append("batch", String(editFormData.batch)); // send batch ID
+        formData.append("batch", String(editFormData.batch)); 
+      }
+
+      if (editFormData.progress) {
+        formData.append("progress", String(editFormData.progress)); 
       }
 
       if (editFormData.enrolled_at) {
@@ -285,9 +286,8 @@ console.log(selectedStudent, "selected student");
         formData.append("paid_amount", String(editFormData.paid_amount));
 
       for (let [key, value] of formData.entries()) {
-        console.log(key, value,"debugging");
+        console.log(key, value, "debugging");
       }
-
 
       const response = await axiosInstance.patch(
         `/student/profile/${editFormData.unique_id}/`,
@@ -1157,12 +1157,12 @@ console.log(selectedStudent, "selected student");
                 </CardContent>
               </Card>
 
-              {/* Course & Payment Information */}
+              {/* Course, Payment & Progress Information */}
               <Card className="border-0 shadow-sm">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <BookOpen className="h-5 w-5" />
-                    Course & Payment Details
+                    Course, Payment & Progress
                   </CardTitle>
                 </CardHeader>
 
@@ -1235,24 +1235,23 @@ console.log(selectedStudent, "selected student");
                     </Select>
                   </div>
 
-                  <div>
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="enrolled_at"
-                        className="text-sm font-medium"
-                      >
-                        Enrolled At
-                      </Label>
-                      <Input
-                        id="enrolled_at"
-                        type="date"
-                        value={editFormData?.enrolled_at?.slice(0, 10) || ""}
-                        onChange={(e) =>
-                          handleInputChange("enrolled_at", e.target.value)
-                        }
-                        disabled={isSaving}
-                      />
-                    </div>
+                  {/* Enrolled At */}
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="enrolled_at"
+                      className="text-sm font-medium"
+                    >
+                      Enrolled At
+                    </Label>
+                    <Input
+                      id="enrolled_at"
+                      type="date"
+                      value={editFormData?.enrolled_at?.slice(0, 10) || ""}
+                      onChange={(e) =>
+                        handleInputChange("enrolled_at", e.target.value)
+                      }
+                      disabled={isSaving}
+                    />
                   </div>
 
                   {/* Paid Amount */}
@@ -1294,6 +1293,31 @@ console.log(selectedStudent, "selected student");
                     </Label>
                     <p className="text-xs text-muted-foreground">
                       Mark as paid
+                    </p>
+                  </div>
+
+                  {/* Progress */}
+                  <div className="space-y-2">
+                    <Label htmlFor="progress" className="text-sm font-medium">
+                      Progress (%)
+                    </Label>
+                    <Input
+                      id="progress"
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={editFormData.progress || 0}
+                      onChange={(e) =>
+                        handleInputChange(
+                          "progress",
+                          parseInt(e.target.value) || 0
+                        )
+                      }
+                      placeholder="Enter progress percentage"
+                      disabled={isSaving}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Student progress (0–100%)
                     </p>
                   </div>
                 </CardContent>
