@@ -40,16 +40,22 @@ const Attendance = () => {
   const studentsPerPage = 5;
   const { session } = useSession();
   console.log(session, "sessions");
-  const selectedSessionObj = Array.isArray(course)
-    ? course.find((c: any) => c.title === selectedSession)
-    : null;
-  const sessionId = selectedSession ? Number(selectedSession) : undefined;
-  const {
-    records,
-    saveAttendance,
-    loading: attendanceLoading,
-    error: attendanceError,
-  } = useAttendance(selectedDate, sessionId);
+  const selectedSessionObj = session.find(
+    (s: any) => String(s.id) === selectedSession
+  );
+  const courseId = selectedSessionObj?.student_details[0]?.course;
+
+  const { records, saveAttendance } = useAttendance(selectedDate, courseId);
+
+  console.log(selectedSessionObj, "session obj");
+  console.log(courseId, "course ID");
+
+  // const {
+  //   records,
+  //   saveAttendance,
+  //   loading: attendanceLoading,
+  //   error: attendanceError,
+  // } = useAttendance(selectedDate, sessionId);
 
   const accessibleStudents = useMemo(
     () =>
@@ -74,13 +80,21 @@ const Attendance = () => {
     SessionOptions.length > 0 ? (SessionOptions[0].props.value as string) : "";
 
   const filteredStudents = useMemo(() => {
-    if (!selectedSession) {
-      return accessibleStudents.filter((s: any) => s.title);
-    }
-    return accessibleStudents.filter(
-      (s: any) => String(s.student_details) === selectedSession
+    if (!selectedSession || !Array.isArray(session)) return accessibleStudents;
+
+    const sessionObj = session.find(
+      (s: any) => String(s.id) === selectedSession
     );
-  }, [accessibleStudents, selectedSession]);
+    if (!sessionObj || !Array.isArray(sessionObj.students)) return [];
+
+    const studentIdsInSession = sessionObj.students.map((id: any) =>
+      String(id)
+    );
+
+    return accessibleStudents.filter((s: any) =>
+      studentIdsInSession.includes(String(s.unique_id))
+    );
+  }, [accessibleStudents, selectedSession, session]);
 
   useEffect(() => {
     if (SessionOptions.length > 0 && !selectedSession) {
@@ -328,7 +342,7 @@ const Attendance = () => {
                   <Button
                     className="bg-gradient-to-r from-primary to-accent hover:opacity-90"
                     onClick={() => {
-                      if (!sessionId) {
+                      if (!courseId) {
                         alert(
                           "Please select a course before saving attendance"
                         );
@@ -336,7 +350,7 @@ const Attendance = () => {
                       }
 
                       const updates = filteredStudents.map((s: any) => {
-                        const uiStatus = statusMap[s.unique_id] || "Absent"; // "Present" | "Absent" | "Late"
+                        const uiStatus = statusMap[s.unique_id] || "Absent";
                         return {
                           student: s.unique_id, // UUID
                           status: uiStatus.toLowerCase() as

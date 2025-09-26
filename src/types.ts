@@ -160,6 +160,7 @@ type StudentDetails = {
   id: number;
   name?: string;
   profile_image?: string | File | null;
+  course:number;
 }[];
 
 
@@ -169,7 +170,9 @@ export interface Session {
   start_time: string;
   duration: string;
   students: StudentProfile[];
-  student_details:StudentDetails;
-  tutor_details : TutorDetails;
+  student_details: StudentDetails;
+  tutor_details: TutorDetails;
   tutor: Tutor;
+  course:number;
+  course_id: number;
 }

@@ -7,7 +7,6 @@ import { Session } from "@/types";
 import useSession from "@/hooks/useSession";
 
 
-
 const SessionPage: React.FC = () => {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [showModal, setShowModal] = useState(false);
