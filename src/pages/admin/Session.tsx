@@ -2,24 +2,47 @@ import React, { useState, useEffect } from "react";
 import axiosInstance from "@/api/axiosInstance";
 import ExeduButton from "@/components/ui/exedu-button";
 import SessionModal from "@/components/ui/session-modal";
-import { Calendar, Clock, Users, User, Eye, X } from "lucide-react";
+import { Calendar, Clock, Users, User, Eye, X, Search } from "lucide-react";
 import { Session } from "@/types";
 import useSession from "@/hooks/useSession";
-
+import useCourseOptions from "@/hooks/useCourseOptions";
 
 const SessionPage: React.FC = () => {
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const {session} = useSession()
-  console.log(session,"session in session page")
+  const { session } = useSession();
+  const { courseOptions } = useCourseOptions();
+  console.log(session, "session in session page");
+  console.log(selectedSession, "selsession in session page");
 
+  const sessionsWithCourseTitle = session.map((session) => {
+    const course = courseOptions.find((c) => c.id === session.course);
+    return {
+      ...session,
+      courseTitle: course ? course.title : "Unknown Course",
+    };
+  });
+
+  console.log(sessionsWithCourseTitle,"session with course title");
+
+  
   useEffect(() => {
     const fetchSessions = async () => {
       try {
         const res = await axiosInstance.get("/session/");
-        setSessions(res.data);
+        const sortedSessions = res.data.sort((a: Session, b: Session) => {
+          if (a.created_at && b.created_at) {
+            return (
+              new Date(b.created_at).getTime() -
+              new Date(a.created_at).getTime()
+            );
+          }
+          return (b.id || 0) - (a.id || 0);
+        });
+        setSessions(sortedSessions);
       } catch (err) {
         console.error(err);
       }
@@ -28,13 +51,26 @@ const SessionPage: React.FC = () => {
   }, []);
 
   const handleSave = (newSession: Session) => {
-    setSessions((prev) => [...prev, newSession]);
+    setSessions((prev) => [newSession, ...prev]);
   };
 
   const handleSessionClick = (session: Session) => {
     setSelectedSession(session);
     setShowDetailModal(true);
   };
+
+  // Filter sessions based on search query
+  const filteredSessions = sessions.filter((session) => {
+    const query = searchQuery.toLowerCase();
+    return (
+      session.title?.toLowerCase().includes(query) ||
+      session.tutor_details?.name?.toLowerCase().includes(query) ||
+      session.student_details?.some((student) =>
+        student.name?.toLowerCase().includes(query)
+      ) ||
+      session.duration?.toLowerCase().includes(query)
+    );
+  });
 
   const formatDateTime = (dateTime: string) => {
     const date = new Date(dateTime);
@@ -70,9 +106,32 @@ const SessionPage: React.FC = () => {
           />
         </div>
 
+        {/* Search Filter */}
+        <div className="mb-6">
+          <div className="relative max-w-md">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              placeholder="Search sessions by title, tutor, student, or duration..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent shadow-sm transition-all duration-200"
+            />
+          </div>
+          {searchQuery && (
+            <p className="mt-2 text-sm text-gray-600">
+              Found {filteredSessions.length} session
+              {filteredSessions.length !== 1 ? "s" : ""} matching "{searchQuery}
+              "
+            </p>
+          )}
+        </div>
+
         {/* Session Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {sessions.map((session) => {
+          {filteredSessions.map((session) => {
             const { date, time } = formatDateTime(session.start_time);
 
             return (
@@ -86,7 +145,7 @@ const SessionPage: React.FC = () => {
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <h3 className="text-lg font-semibold truncate">
-                        {session.title || "Untitled Session"}
+                        {session.course || "Untitled Session"}
                       </h3>
                       <div className="flex items-center mt-2 text-indigo-100">
                         <Calendar className="w-4 h-4 mr-2" />
@@ -118,7 +177,7 @@ const SessionPage: React.FC = () => {
                       {session.tutor_details?.profile_image ? (
                         <img
                           src={session.tutor.profile_image}
-                          alt={session.tutor.name}
+                          alt={session.tutor_details.name}
                           className="w-6 h-6 rounded-full mr-2 border-2 border-purple-200"
                         />
                       ) : (
@@ -127,7 +186,7 @@ const SessionPage: React.FC = () => {
                         </div>
                       )}
                       <span className="text-sm font-medium text-gray-700">
-                        {session.tutor?.name || "No tutor assigned"}
+                        {session.tutor_details?.name || "No tutor assigned"}
                       </span>
                     </div>
                   </div>
@@ -145,35 +204,37 @@ const SessionPage: React.FC = () => {
                 {/* Card Footer */}
                 <div className="px-4 pb-4">
                   <div className="flex -space-x-2">
-                    {session.student_details.slice(0, 3).map((student, index) => {
-                      let imgSrc = "";
+                    {session.student_details
+                      .slice(0, 3)
+                      .map((student, index) => {
+                        let imgSrc = "";
 
-                      if (student.profile_image) {
-                        if (typeof student.profile_image === "string") {
-                          imgSrc = student.profile_image;
-                        } else if (student.profile_image instanceof File) {
-                          imgSrc = URL.createObjectURL(student.profile_image);
+                        if (student.profile_image) {
+                          if (typeof student.profile_image === "string") {
+                            imgSrc = student.profile_image;
+                          } else if (student.profile_image instanceof File) {
+                            imgSrc = URL.createObjectURL(student.profile_image);
+                          }
                         }
-                      }
 
-                      return (
-                        <div key={student.id} className="relative">
-                          {imgSrc ? (
-                            <img
-                              src={imgSrc}
-                              alt={student.name}
-                              className="w-8 h-8 rounded-full border-2 border-white shadow-sm"
-                            />
-                          ) : (
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 border-2 border-white shadow-sm flex items-center justify-center">
-                              <span className="text-xs font-semibold text-white">
-                                {student.name?.charAt(0).toUpperCase()}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                        return (
+                          <div key={student.id} className="relative">
+                            {imgSrc ? (
+                              <img
+                                src={imgSrc}
+                                alt={student.name}
+                                className="w-8 h-8 rounded-full border-2 border-white shadow-sm"
+                              />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 border-2 border-white shadow-sm flex items-center justify-center">
+                                <span className="text-xs font-semibold text-white">
+                                  {student.name?.charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
 
                     {session.student_details.length > 3 && (
                       <div className="w-8 h-8 rounded-full bg-gray-200 border-2 border-white shadow-sm flex items-center justify-center">
@@ -205,6 +266,27 @@ const SessionPage: React.FC = () => {
               label="Create Your First Session"
               onClick={() => setShowModal(true)}
             />
+          </div>
+        )}
+
+        {/* No Search Results */}
+        {sessions.length > 0 && filteredSessions.length === 0 && (
+          <div className="text-center py-12">
+            <div className="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Search className="w-12 h-12 text-gray-400" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-700 mb-2">
+              No sessions found
+            </h3>
+            <p className="text-gray-500 mb-6">
+              Try adjusting your search terms or create a new session
+            </p>
+            <button
+              onClick={() => setSearchQuery("")}
+              className="text-indigo-600 hover:text-indigo-700 font-medium"
+            >
+              Clear search
+            </button>
           </div>
         )}
       </div>
@@ -301,7 +383,7 @@ const SessionPage: React.FC = () => {
                     )}
                     <div>
                       <p className="font-medium text-gray-800">
-                        {selectedSession.tutor.name}
+                        {selectedSession.tutor_details.name}
                       </p>
                       <p className="text-sm text-gray-600">
                         Session Instructor
@@ -321,37 +403,43 @@ const SessionPage: React.FC = () => {
                     Students ({selectedSession.students.length})
                   </h3>
                 </div>
-                {selectedSession.students.length > 0 ? (
+                {selectedSession.student_details.length > 0 ? (
                   <div className="grid grid-cols-1 gap-3">
-                    {selectedSession.students.slice(0, 3).map((student) => {
-                      let imgSrc: string | null = null;
+                    {selectedSession.student_details
+                      .slice(0, 3)
+                      .map((student) => {
+                        let imgSrc: string | null = null;
+                        console.log("Rendering student:", student);
 
-                      if (student.profile_image) {
-                        if (typeof student.profile_image === "string") {
-                          imgSrc = student.profile_image;
-                        } else if (student.profile_image instanceof File) {
-                          imgSrc = URL.createObjectURL(student.profile_image);
+                        if (student.profile_image) {
+                          if (typeof student.profile_image === "string") {
+                            imgSrc = student.profile_image;
+                          } else if (student.profile_image instanceof File) {
+                            imgSrc = URL.createObjectURL(student.profile_image);
+                          }
                         }
-                      }
 
-                      return (
-                        <div key={student.id} className="relative">
-                          {imgSrc ? (
-                            <img
-                              src={imgSrc} // now TypeScript knows this is a string
-                              alt={student.name || "Student"}
-                              className="w-8 h-8 rounded-full border-2 border-white shadow-sm"
-                            />
-                          ) : (
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 border-2 border-white shadow-sm flex items-center justify-center">
-                              <span className="text-xs font-semibold text-white">
-                                {student.name?.charAt(0).toUpperCase()}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                        return (
+                          <div key={student.id} className="relative">
+                            {imgSrc ? (
+                              <div className="flex items-center gap-2">
+                                <img
+                                  src={imgSrc}
+                                  alt={student.name || "Student"}
+                                  className="w-8 h-8 rounded-full border-2 border-white shadow-sm"
+                                />
+                                <h1>{student?.name ?? "Student"}</h1>
+                              </div>
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 border-2 border-white shadow-sm flex items-center justify-center">
+                                <span className="text-xs font-semibold text-white">
+                                  {student.name?.charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                   </div>
                 ) : (
                   <div className="text-center py-8 text-gray-500">

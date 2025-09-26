@@ -7,6 +7,7 @@ import useTutorOptions from "@/api/getTutorOptions";
 import axiosInstance from "@/api/axiosInstance";
 import { toast } from "sonner";
 import { Session } from "@/types";
+import useCourseOptions from "@/hooks/useCourseOptions";
 
 
 interface SessionModalProps {
@@ -21,26 +22,32 @@ export default function SessionModal({
   onSave,
 }: SessionModalProps) {
   const [title, setTitle] = useState("");
+  const {courseOptions} = useCourseOptions();
   const [dateTime, setDateTime] = useState<Date | null>(new Date());
   const [duration, setDuration] = useState<number>(60); 
   const [selectedTutor, setSelectedTutor] = useState<any>(null);
   const [selectedStudents, setSelectedStudents] = useState<any[]>([]);
+  const [selectedCourse, setSelectedCourse] = useState<any>(null);
+
 
   const { tutorOptions } = useTutorOptions();
   const { studentProfile: students } = useStudentProfile();
-  console.log(tutorOptions,"tutor options")
-  console.log(students,"student options")
+  // console.log(tutorOptions,"tutor options")
+  // console.log(students,"student options")
+  // console.log(selectedStudents, "selected students");
+  // console.log(selectedTutor, "selected tutor");
+  console.log(courseOptions,"course options")
 
   const [showTutorModal, setShowTutorModal] = useState(false);
   const [showStudentModal, setShowStudentModal] = useState(false);
 
-  console.log(selectedStudents,"selected students")
-  console.log(selectedTutor,"selected tutor")
+  
 
   const handleSave = async () => {
     try {
       const payload = {
         title,
+        course : selectedCourse?.id || null,
         start_time: dateTime?.toISOString(),
         duration: `PT${duration}M`,
         tutor: selectedTutor?.id || null,
@@ -85,7 +92,6 @@ export default function SessionModal({
             </button>
           </div>
 
-          {/* Title */}
           <input
             type="text"
             placeholder="Session Title"
@@ -93,6 +99,32 @@ export default function SessionModal({
             onChange={(e) => setTitle(e.target.value)}
             className="w-full border rounded-lg px-3 py-2 mb-4"
           />
+
+          {/* Title */}
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-slate-700">
+              Select Course
+            </label>
+            <select
+              title="Select a course"
+              value={selectedCourse?.id || ""}
+              onChange={(e) =>
+                setSelectedCourse(
+                  courseOptions.find(
+                    (c: any) => c.id === Number(e.target.value)
+                  )
+                )
+              }
+              className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-indigo-400 focus:outline-none transition-colors bg-slate-50 focus:bg-white"
+            >
+              <option value="">Select a course</option>
+              {courseOptions.map((course: any) => (
+                <option key={course.id} value={course.id}>
+                  {course.title}
+                </option>
+              ))}
+            </select>
+          </div>
 
           {/* Date & Time */}
           <label className="block mb-2 font-semibold">Date & Time</label>

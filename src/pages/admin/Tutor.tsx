@@ -8,16 +8,23 @@ interface Tutor {
   name: string;
   email?: string;
   phone_number?: string;
+  image?: string;
 }
 
 const TutorPage: React.FC = () => {
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string;
+    email: string;
+    phone_number: string;
+    image: File | null;
+  }>({
     name: "",
     email: "",
     phone_number: "",
+    image: null,
   });
 
   const fetchTutors = async () => {
@@ -37,13 +44,31 @@ const TutorPage: React.FC = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFormData({ ...formData, image: e.target.files[0] });
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
     try {
-      const res = await axiosInstance.post<Tutor>("/tutor/", formData);
+      const formDataToSend = new FormData();
+      formDataToSend.append("name", formData.name);
+      formDataToSend.append("email", formData.email);
+      formDataToSend.append("phone_number", formData.phone_number);
+      if (formData.image) {
+        formDataToSend.append("image", formData.image);
+      }
+
+      const res = await axiosInstance.post<Tutor>("/tutor/", formDataToSend, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
       setTutors([...tutors, res.data]);
-      setFormData({ name: "", email: "", phone_number: "" });
+      setFormData({ name: "", email: "", phone_number: "", image: null }); // reset properly
       setOpen(false);
     } catch (err) {
       console.error("Failed to add tutor:", err);
@@ -106,9 +131,17 @@ const TutorPage: React.FC = () => {
             >
               {/* Avatar */}
               <div className="flex justify-center mb-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-indigo-400 to-purple-500 rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-lg">
-                  {tutor.name.charAt(0).toUpperCase()}
-                </div>
+                {tutor.image ? (
+                  <img
+                    src={tutor.image}
+                    alt={tutor.name}
+                    className="w-16 h-16 object-cover rounded-2xl"
+                  />
+                ) : (
+                  <div className="w-16 h-16 bg-gradient-to-br from-indigo-400 to-purple-500 rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                    {tutor.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
               </div>
 
               {/* Tutor Info */}
@@ -241,6 +274,22 @@ const TutorPage: React.FC = () => {
                       value={formData.phone_number}
                       onChange={handleChange}
                       className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-indigo-400 focus:outline-none transition-colors bg-slate-50 focus:bg-white"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-slate-700">
+                      Profile Image
+                    </label>
+                    <input
+                      title="Upload your profile image"
+                      type="file"
+                      name="profile_image"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 
+               focus:border-indigo-400 focus:outline-none transition-colors 
+               bg-slate-50 focus:bg-white"
                     />
                   </div>
 

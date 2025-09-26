@@ -175,4 +175,5 @@ export interface Session {
   tutor: Tutor;
   course:number;
   course_id: number;
+  created_at: string;
 }
