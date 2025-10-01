@@ -139,12 +139,13 @@ export default function SessionModal({
           />
 
           {/* Duration */}
-          <label className="block mb-2 font-semibold">Duration (minutes)</label>
+          <label className="block mb-2 font-semibold">Duration (hours)</label>
           <input
-            title="Duration"
+            title="Duration (hours)"
             type="number"
-            value={duration}
-            onChange={(e) => setDuration(Number(e.target.value))}
+            step={0.25} // allow quarter-hour increments
+            value={duration / 60} // show hours
+            onChange={(e) => setDuration(Number(e.target.value) * 60)} // convert hours → minutes
             className="w-full border rounded-lg px-3 py-2 mb-4"
           />
 

@@ -111,6 +111,7 @@ export interface Contact {
   course: string;
   submitted_at: string;}
 
+
 export interface Enquire {
   id : number;
   name: string;
@@ -169,6 +170,7 @@ export interface Session {
   id: number;
   start_time: string;
   duration: string;
+  course_details:Course;
   students: StudentProfile[];
   student_details: StudentDetails;
   tutor_details: TutorDetails;
@@ -176,4 +178,13 @@ export interface Session {
   course:number;
   course_id: number;
   created_at: string;
+}
+
+export type Status = "Present" | "Absent" | "Late";
+
+export interface AttendanceUpdate {
+  student: string;
+  status: Status; 
+  session_id: string;
+  date: string;
 }

@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import axiosInstance from "@/api/axiosInstance";
 import { toast } from "sonner";
 
-type UIStatus = "Present" | "Absent" | "Late";
-type ApiStatus = "present" | "absent" | "late";
+type UIStatus = "Present" | "Absent" | "Late" | "Pending";
+type ApiStatus = "present" | "absent" | "late" | "pending";
 
 export type AttendanceRecord = {
   id?: number;
@@ -40,7 +40,7 @@ export type AttendanceItem = {
 
 
 export default function useAttendance(date: Date, courseId?: number) {
-  const [records, setRecords] = useState<AttendanceItem[]>([]); // <-- API response shape
+  const [records, setRecords] = useState<AttendanceItem[]>([]); 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

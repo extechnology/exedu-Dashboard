@@ -26,6 +26,7 @@ import useCourse from "@/hooks/useCourse";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import useSession from "@/hooks/useSession";
+import { format } from "date-fns";
 
 type Status = "Present" | "Absent" | "Late" | null;
 
@@ -39,23 +40,13 @@ const Attendance = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const studentsPerPage = 5;
   const { session } = useSession();
-  console.log(session, "sessions");
   const selectedSessionObj = session.find(
     (s: any) => String(s.id) === selectedSession
   );
   const courseId = selectedSessionObj?.student_details[0]?.course;
 
   const { records, saveAttendance } = useAttendance(selectedDate, courseId);
-
-  console.log(selectedSessionObj, "session obj");
-  console.log(courseId, "course ID");
-
-  // const {
-  //   records,
-  //   saveAttendance,
-  //   loading: attendanceLoading,
-  //   error: attendanceError,
-  // } = useAttendance(selectedDate, sessionId);
+  const [statusMap, setStatusMap] = useState<Record<string, Status>>({});
 
   const accessibleStudents = useMemo(
     () =>
@@ -65,15 +56,36 @@ const Attendance = () => {
     [studentProfile]
   );
 
+  function formatDuration(duration: string) {
+    const [hours, minutes, seconds] = duration.split(":").map(Number);
+    let parts: string[] = [];
+
+    if (hours) parts.push(`${hours} hr${hours > 1 ? "s" : ""}`);
+    if (minutes) parts.push(`${minutes} min${minutes > 1 ? "s" : ""}`);
+
+    return parts.length > 0 ? parts.join(" ") : `${seconds} sec`;
+  }
+
   const SessionOptions = Array.isArray(session)
-    ? session.map((s: any) => {
-        const formattedLabel = `Session ${s.title} - ${s.duration} (${s.start_time})`;
-        return (
-          <SelectItem key={s.id} value={String(s.id)}>
-            {formattedLabel}
-          </SelectItem>
-        );
-      })
+    ? [...session]
+        .sort(
+          (a: any, b: any) =>
+            new Date(b.start_time).getTime() - new Date(a.start_time).getTime()
+        )
+        .map((s: any) => {
+          const formattedDate = format(
+            new Date(s.start_time),
+            "dd MMM yyyy, hh:mm a"
+          );
+          const formattedDuration = formatDuration(s.duration);
+          const formattedLabel = `Session ${s.title} - ${formattedDuration} (${formattedDate})`;
+
+          return (
+            <SelectItem key={s.id} value={String(s.id)}>
+              {formattedLabel}
+            </SelectItem>
+          );
+        })
     : [];
 
   const firstCourseValue =
@@ -117,8 +129,6 @@ const Attendance = () => {
       .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
       .join(" ");
   }
-
-  const [statusMap, setStatusMap] = useState<Record<string, Status>>({});
 
   useEffect(() => {
     if (records.length > 0) {

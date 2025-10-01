@@ -26,9 +26,8 @@ const SessionPage: React.FC = () => {
     };
   });
 
-  console.log(sessionsWithCourseTitle,"session with course title");
+  console.log(sessionsWithCourseTitle, "session with course title");
 
-  
   useEffect(() => {
     const fetchSessions = async () => {
       try {
@@ -72,6 +71,15 @@ const SessionPage: React.FC = () => {
     );
   });
 
+  function formatCourseName(course: string | null) {
+    if (!course) return "No Course";
+    return course
+      .split("_")
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ");
+  }
+
+  console.log(filteredSessions, "filteredSessions");
   const formatDateTime = (dateTime: string) => {
     const date = new Date(dateTime);
     return {
@@ -145,7 +153,8 @@ const SessionPage: React.FC = () => {
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <h3 className="text-lg font-semibold truncate">
-                        {session.course || "Untitled Session"}
+                        {formatCourseName(session.course_details?.title) ||
+                          "Untitled Session"}
                       </h3>
                       <div className="flex items-center mt-2 text-indigo-100">
                         <Calendar className="w-4 h-4 mr-2" />
@@ -166,7 +175,17 @@ const SessionPage: React.FC = () => {
                     <span className="text-sm font-medium">{time}</span>
                     <span className="mx-2 text-gray-400">•</span>
                     <span className="text-sm text-gray-600">
-                      {session.duration}
+                      {(() => {
+                        if (!session?.duration) return "";
+                        const [hoursStr, minutesStr] =
+                          session.duration.split(":");
+                        const hours = parseInt(hoursStr, 10);
+                        const minutes = parseInt(minutesStr, 10);
+                        if (minutes > 0) {
+                          return `${hours + minutes / 60} hr`;
+                        }
+                        return `${hours} hr`;
+                      })()}
                     </span>
                   </div>
 
@@ -344,7 +363,19 @@ const SessionPage: React.FC = () => {
                     <h3 className="font-semibold text-gray-800">Duration</h3>
                   </div>
                   <p className="text-indigo-700 font-medium">
-                    {selectedSession.duration}
+                    <span className="text-sm ">
+                      {(() => {
+                        if (!session[0]?.duration) return "";
+                        const [hoursStr, minutesStr] =
+                          session[0].duration.split(":");
+                        const hours = parseInt(hoursStr, 10);
+                        const minutes = parseInt(minutesStr, 10);
+                        if (minutes > 0) {
+                          return `${hours + minutes / 60} hr`;
+                        }
+                        return `${hours} hr`;
+                      })()}
+                    </span>
                   </p>
                 </div>
                 <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-4 rounded-xl">
