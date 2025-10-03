@@ -24,6 +24,9 @@ import {
 import CertificateModal from "@/components/ui/certificateModal";
 import axiosInstance from "@/api/axiosInstance";
 import useStudentProfile from "@/hooks/useStudentProfile";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
+
 
 const Certificates = () => {
   const [certificates, setCertificates] = useState([]);
@@ -48,18 +51,21 @@ const Certificates = () => {
     refreshCertificates();
   }, []);
 
-  const filteredCertificates = certificates.filter((cert) => {
-    const matchesSearch =
-      cert.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cert.course.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cert.certificateNumber.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredCertificates = certificates
+    .slice()
+    .sort((a, b) => b.id - a.id)
+    .filter((cert) => {
+      const matchesSearch =
+        cert.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        cert.course.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        cert.certificateNumber.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesStatus =
-      statusFilter === "all" ||
-      cert.status.toLowerCase() === statusFilter.toLowerCase();
+      const matchesStatus =
+        statusFilter === "all" ||
+        cert.status.toLowerCase() === statusFilter.toLowerCase();
 
-    return matchesSearch && matchesStatus;
-  });
+      return matchesSearch && matchesStatus;
+    });
 
   const getStatusBadge = (status: string) => {
     const variants = {
@@ -86,6 +92,42 @@ const Certificates = () => {
     draft: certificates.filter((c) => c.status === "Draft").length,
   };
 
+  const exportToExcel = () => {
+    if (!certificates || certificates.length === 0) return;
+
+    // Map certificate data to a simple array of objects
+    const data = certificates.map((cert) => ({
+      "Certificate Number": cert.certificateNumber,
+      "Student Name": cert.studentName,
+      "Student ID": cert.studentId,
+      Course: cert.course,
+      Grade: cert.grade,
+      Status: cert.status,
+      "Issue Date": new Date(cert.issueDate).toLocaleDateString(),
+      "Certificate Type": cert.certificateType,
+    }));
+
+    // Create a worksheet
+    const worksheet = XLSX.utils.json_to_sheet(data);
+
+    // Create a new workbook and append the worksheet
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Certificates");
+
+    // Generate Excel buffer
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
+
+    // Save file
+    const blob = new Blob([excelBuffer], {
+      type: "application/octet-stream",
+    });
+    saveAs(blob, `Certificates_${new Date().toISOString()}.xlsx`);
+  };
+
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -106,20 +148,20 @@ const Certificates = () => {
           >
             + Issue Certificate
           </Button>
-          {/* <CertificateModal
+          <CertificateModal
             open={showModal}
             onClose={() => setShowModal(false)}
             onSuccess={refreshCertificates}
             students={
               studentProfile.length > 0
                 ? studentProfile.map((student: any) => ({
-                    user: student.unique_id, 
+                    user: student.unique_id,
                     name: student.name ?? "Unnamed",
                     course: student.course_name ?? "",
                   }))
                 : []
             }
-          /> */}
+          />
         </div>
       </div>
 
@@ -289,11 +331,28 @@ const Certificates = () => {
                 </div>
 
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      window.open(certificate.certificateFile, "_blank")
+                    }
+                  >
                     <Eye className="h-4 w-4 mr-1" />
                     Preview
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const link = document.createElement("a");
+                      link.href = certificate.certificateFile;
+                      link.download = `${certificate.studentName}_certificate.pdf`; // You can change the filename
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                    }}
+                  >
                     <Download className="h-4 w-4 mr-1" />
                     Download
                   </Button>
@@ -344,10 +403,12 @@ const Certificates = () => {
             <Button
               variant="outline"
               className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-warning/5 hover:border-warning"
+              onClick={exportToExcel}
             >
               <Download className="h-6 w-6 text-warning" />
               <span>Export Report</span>
             </Button>
+
             <Button
               variant="outline"
               className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-accent/5 hover:border-accent"

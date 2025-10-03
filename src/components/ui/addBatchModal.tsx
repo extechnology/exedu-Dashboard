@@ -1,6 +1,5 @@
 import { useState } from "react";
 import useCourseOptions from "@/hooks/useCourseOptions";
-import useTutorOptions from "@/api/getTutorOptions";
 import axiosInstance from "@/api/axiosInstance";
 import { toast } from "sonner";
 
@@ -16,24 +15,20 @@ export default function AddBatchModal({
   onSuccess,
 }: AddBatchModalProps) {
   const { courseOptions } = useCourseOptions();
-  const { tutorOptions } = useTutorOptions();
-  console.log(tutorOptions, "tutorOptions");
   console.log(courseOptions, "courseOptions");
 
   const [time, setTime] = useState("");
 
-  const hours = Array.from({ length: 12 }, (_, i) => i + 1); // 1–12
+  const hours = Array.from({ length: 12 }, (_, i) => i + 1); 
   const minutes = ["00", "15", "30", "45"];
   const periods = ["AM", "PM"];
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [formData, setFormData] = useState({
-    tutor_id: "",
     course: "",
     batch_number: "",
     date: "",
     time_start: "",
-    duration: "",
   });
 
   const handleChange = (
@@ -43,36 +38,49 @@ export default function AddBatchModal({
 
     setFormData({
       ...formData,
-      [name]: name === "tutor_id" || name === "course" ? Number(value) : value,
+      [name]: name === "course" ? Number(value) : value,
     });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
+  e.preventDefault();
+  setLoading(true);
+  setError("");
 
-    try {
-      const payload = {
-        ...formData,
-        tutor_id: Number(formData.tutor_id),
-        course: Number(formData.course),
-      };
+  try {
+    let formattedTime = "";
+    if (time) {
+      const [hhmm, period] = time.split(" ");
+      let [hours, minutes] = hhmm.split(":").map((x) => parseInt(x, 10));
 
-      await axiosInstance.post("/batches/", payload, {
-        headers: { "Content-Type": "application/json" },
-      });
+      if (period === "PM" && hours < 12) hours += 12;
+      if (period === "AM" && hours === 12) hours = 0;
 
-      setLoading(false);
-      onSuccess();
-      onClose();
-      toast.success("Batch created successfully");
-    } catch (err) {
-      console.error(err);
-      setError("Failed to create batch");
-      setLoading(false);
+      formattedTime = `${hours.toString().padStart(2, "0")}:${minutes
+        .toString()
+        .padStart(2, "0")}:00`;
     }
-  };
+
+    const payload = {
+      ...formData,
+      course: Number(formData.course),
+      time_start: formattedTime,
+    };
+
+    await axiosInstance.post("/batches/", payload, {
+      headers: { "Content-Type": "application/json" },
+    });
+
+    setLoading(false);
+    onSuccess();
+    onClose();
+    toast.success("Batch created successfully");
+  } catch (err) {
+    console.error(err);
+    setError("Failed to create batch");
+    setLoading(false);
+  }
+};
 
   if (!open) return null;
 
@@ -91,21 +99,7 @@ export default function AddBatchModal({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Tutor dropdown */}
-          <select
-            title="Select Tutor"
-            name="tutor_id"
-            value={formData.tutor_id}
-            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-violet-500 outline-none"
-            onChange={handleChange}
-            required
-          >
-            <option value="">Select Tutor</option>
-            {tutorOptions.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
+          
 
           <select
             title="Select Course"
@@ -200,15 +194,6 @@ export default function AddBatchModal({
             </div>
           </div>
 
-          {/* Duration */}
-          <input
-            type="text"
-            name="duration"
-            value={formData.duration}
-            onChange={handleChange}
-            placeholder="Duration (e.g., 2 hours)"
-            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-violet-500 outline-none"
-          />
 
           <button
             type="submit"

@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/select";
 import useCourseOptions from "@/hooks/useCourseOptions";
 import useTutorOptions from "@/api/getTutorOptions";
+import { toast } from "sonner";
 
 interface EditCourseModalProps {
   open: boolean;
@@ -57,8 +58,9 @@ interface EditCourseModalProps {
   onClose: () => void;
   course: Course | null;
   onSave: (courseData: Course) => Promise<void>;
-  onDelete: (courseId: number) => Promise<void>; // ✅ new
+  onDelete: (courseId: number) => Promise<void>;
   isSaving: boolean;
+  courseTitleToKeyMap: Record<string, string>;
 }
 
 const EditCourseModal: React.FC<EditCourseModalProps> = ({
@@ -68,6 +70,7 @@ const EditCourseModal: React.FC<EditCourseModalProps> = ({
   onSave,
   isSaving,
   onDelete,
+  courseTitleToKeyMap,
 }) => {
   const [formData, setFormData] = useState<Course>({
     id: 0,
@@ -78,6 +81,7 @@ const EditCourseModal: React.FC<EditCourseModalProps> = ({
     tutor_id: "",
     course_id: "",
     duration: "",
+    tutor_name:"",
     tutor: "",
     price: "",
   });
@@ -85,12 +89,17 @@ const EditCourseModal: React.FC<EditCourseModalProps> = ({
   const [imagePreview, setImagePreview] = useState<string>("");
   const { courseOptions } = useCourseOptions();
   const { tutorOptions } = useTutorOptions();
-  console.log(courseOptions);
+  console.log(courseTitleToKeyMap, " course title to key map");
+
+  console.log(courseOptions, "course options");
   console.log(tutorOptions);
-  // Initialize form data when course changes
   useEffect(() => {
     if (course && open) {
-      setFormData({ ...course });
+      setFormData({
+        ...course,
+        title: course.title, 
+        tutor_id: course.tutor ? Number(course.tutor) : "",
+      });
       if (course.image) {
         setImagePreview(
           `${import.meta.env.VITE_MEDIA_BASE_URL}${course.image}`
@@ -99,7 +108,6 @@ const EditCourseModal: React.FC<EditCourseModalProps> = ({
     }
   }, [course, open]);
 
-  // Reset form when modal closes
   useEffect(() => {
     if (!open) {
       setFormData({
@@ -110,6 +118,7 @@ const EditCourseModal: React.FC<EditCourseModalProps> = ({
         image: "",
         duration: "",
         tutor_id: "",
+        tutor_name:"",
         course_id: "",
         tutor: "",
         price: "",
@@ -126,14 +135,13 @@ const EditCourseModal: React.FC<EditCourseModalProps> = ({
     }));
   };
 
-
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setImageFile(file);
       setFormData((prev) => ({
         ...prev,
-        image: file, // ✅ store File, not name
+        image: file,
       }));
 
       const reader = new FileReader();
@@ -144,30 +152,39 @@ const EditCourseModal: React.FC<EditCourseModalProps> = ({
     }
   };
 
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-  const courseData = new FormData();
+    console.log("Submitting formData", formData);
 
-  courseData.append("title", formData.title);
-  courseData.append("sub_title", formData.sub_title);
-  courseData.append("description", formData.description);
-  courseData.append("duration", formData.duration);
-  courseData.append("price", formData.price);
+    const titleToSubmit = formData.title || course?.title || "";
 
-  if (formData.tutor_id) {
-    courseData.append("tutor_id", String(formData.tutor_id));
-  }
-  if (formData.course_id) {
-    courseData.append("course", String(formData.course_id)); // ✅ numeric id
-  }
-  if (imageFile) {
-    courseData.append("image", imageFile);
-  }
+    if (!titleToSubmit.trim()) {
+      toast.error("Title is required");
+      return;
+    }
 
-  await onSave(courseData as any);
-};
+    const courseData = new FormData();
+    courseData.append("title", formData.title);
+    courseData.append("description", formData.description || "");
+    courseData.append("sub_title", formData.sub_title || "");
+    courseData.append("duration", formData.duration || "");
+    courseData.append("price", formData.price || "");
+    if (formData.tutor_id !== "") {
+      courseData.append("tutor", String(formData.tutor_id));
+    }
+    console.log(formData.tutor_id, "form data tutor id");
+    console.log(formData.title, "form data title");
 
+    if (imageFile) courseData.append("image", imageFile);
+
+    await onSave({
+      ...formData,
+      title_display:
+        courseOptions.find((c) => c.id === Number(formData.title))?.title ||
+        formData.title,
+    } as Course);
+  };
 
   function formatCourseName(courseName: string | null) {
     if (!courseName) return "No Course";
@@ -244,7 +261,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Instructor</span>
                   <span className="font-medium">
-                    {formData.tutor || "Not assigned"}
+                    {formData.tutor_name || "Not assigned"}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
@@ -310,22 +327,23 @@ const handleSubmit = async (e: React.FormEvent) => {
                         Course Title *
                       </Label>
                     </div>
-                    
+
                     <Select
                       onValueChange={(value) =>
-                        setFormData({ ...formData, course_id: Number(value) })
+                        handleInputChange("title", value)
                       }
-                      value={
-                        formData.course_id ? String(formData.course_id) : ""
-                      }
+                      value={formData.title || ""}
                     >
                       <SelectTrigger className="w-full border bg-muted/50">
                         <SelectValue placeholder="Select a course" />
                       </SelectTrigger>
                       <SelectContent>
-                        {courseOptions.map((course) => (
-                          <SelectItem key={course.id} value={String(course.id)}>
-                            {course.title}
+                        {courseOptions.map((c) => (
+                          <SelectItem
+                            key={c.id}
+                            value={courseTitleToKeyMap[c.title]} // ✅ send the key/slug
+                          >
+                            {c.title}
                           </SelectItem>
                         ))}
                       </SelectContent>

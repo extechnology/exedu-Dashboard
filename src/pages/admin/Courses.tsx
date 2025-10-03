@@ -12,7 +12,7 @@ import {
   Users,
   Clock,
   Trash,
-  PlusCircle
+  PlusCircle,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -39,7 +39,6 @@ import { Course } from "@/types";
 import { toast } from "sonner";
 import axiosInstance from "@/api/axiosInstance";
 
-// Map Django choice keys to display labels
 const courseLabelMap: Record<string, string> = {
   ai_advanced_digital_marketing: "AI Advanced Digital Marketing",
   graphic_design: "Graphic Design",
@@ -51,7 +50,7 @@ const courseLabelMap: Record<string, string> = {
 
 const Courses = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const { course } = useCourse(); // Add refetch to update data after operations
+  const { course } = useCourse();
   const [showModal, setShowModal] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<any>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -61,6 +60,10 @@ const Courses = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [courseToDelete, setCourseToDelete] = useState<Course | null>(null);
+
+  const courseTitleToKeyMap: Record<string, string> = Object.fromEntries(
+    Object.entries(courseLabelMap).map(([key, label]) => [label, key])
+  );
 
   const handleEditCourse = (courseId: number): void => {
     if (Array.isArray(course)) {
@@ -73,12 +76,19 @@ const Courses = () => {
   };
 
   const validateForm = (courseData: Course): boolean => {
-    if (!(courseData.title ?? "").trim()) {
-      toast.error("Title is required");
-      return false;
-    }
+    const title = courseData.title ? String(courseData.title).trim() : "";
+    console.log(title, "title inside validate");
+    console.log(title, "title inside validate");
+    console.log(title, "title inside validate");
 
-    if (!courseData.description?.trim()) {
+    // if (!title) {
+    //   toast.error("Title is required");
+    //   console.log(courseData.title, "title");
+    //   console.log(courseData, "course data");
+    //   return false;
+    // }
+
+    if (!courseData.description || !courseData.description.trim()) {
       toast.error("Description is required");
       return false;
     }
@@ -93,39 +103,32 @@ const Courses = () => {
 
     try {
       const formData = new FormData();
-      formData.append("title", courseData.title);
+
+      // Support both label and slug
+      const titleKey =
+        courseTitleToKeyMap[courseData.title] || courseData.title;
+      formData.append("title", titleKey);
+
       formData.append("description", courseData.description);
 
-      // Handle image (new upload vs existing)
       if (courseData.image instanceof File) {
-        formData.append("image", courseData.image); // ✅ new file
+        formData.append("image", courseData.image);
       }
-      // else: if it's a string (existing image URL), skip → backend will keep old one
-
       if (courseData.duration) formData.append("duration", courseData.duration);
-      if (courseData.tutor) formData.append("tutor", courseData.tutor);
+      if (courseData.tutor_id)
+        formData.append("tutor", String(courseData.tutor_id));
       if (courseData.price)
         formData.append("price", courseData.price.toString());
       if (courseData.status) formData.append("status", courseData.status);
 
-      const response = await axiosInstance.patch(
-        `/course/${courseData.id}/`,
-        formData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        }
-      );
+      await axiosInstance.patch(`/course/${courseData.id}/`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
 
       toast.success("Course updated successfully!");
       closeEditModal();
-
-      // Refetch data to update the UI
-      // if (refetch) {
-      //   await refetch();
-      // }
     } catch (error: any) {
       console.error("Error updating course:", error);
-
       let errorMessage = "Failed to update course";
       if (error.response?.data) {
         const errors = Object.values(error.response.data).flat();
@@ -133,7 +136,6 @@ const Courses = () => {
       } else if (error.message) {
         errorMessage = error.message;
       }
-
       toast.error(errorMessage);
     } finally {
       setIsSaving(false);
@@ -145,13 +147,11 @@ const Courses = () => {
       await axiosInstance.delete(`/course/${courseId}/`);
       toast.success("Course deleted successfully!");
       closeEditModal();
-      // refetch courses or update local state
     } catch (error: any) {
       toast.error("Failed to delete course");
       console.error("Delete error:", error);
     }
   };
-
 
   const openDeleteDialog = (course: Course) => {
     setCourseToDelete(course);
@@ -183,14 +183,14 @@ const Courses = () => {
       })
     : [];
 
+    console.log(filteredCourses, "filteredCourses");
   const activeUsers = Array.isArray(studentProfile)
     ? studentProfile.filter((p) => p.can_access_profile)
     : [];
 
-  // Group active users by course
   const studentsByCourse: Record<string, number> = activeUsers.reduce(
     (acc, user) => {
-      const courseName = user.course || "No Course"; // API gives label
+      const courseName = user.course || "No Course";
       acc[courseName] = (acc[courseName] || 0) + 1;
       return acc;
     },
@@ -327,7 +327,7 @@ const Courses = () => {
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Instructor</span>
                   <span className="font-medium">
-                    {course.tutor || "Not assigned"}
+                    {course.tutor_name || "Not assigned"}
                   </span>
                 </div>
 
@@ -395,6 +395,7 @@ const Courses = () => {
         onSave={handleSaveChanges}
         onDelete={handleDeleteCourse}
         isSaving={isSaving}
+        courseTitleToKeyMap={courseTitleToKeyMap}
       />
 
       {/* Delete Confirmation Dialog */}

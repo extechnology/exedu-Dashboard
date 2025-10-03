@@ -60,6 +60,7 @@ export interface StudentProfile {
   course_name: string | null;
   interests: string;
   created_at: string;
+  course_id: number | null;
   is_public: boolean;
   can_access_profile: boolean;
   course: string | null;
@@ -69,7 +70,7 @@ export interface StudentProfile {
   paid_amount: number | null;
   paid_at: string | null;
   user: number;
-  progress:number;
+  progress: number;
 }
 
 
@@ -86,6 +87,7 @@ export interface Course {
   students?: number;
   tutor_id: number | "";
   course_id: number | "";
+  tutor_name:string;
   startDate?: string;
   status?: "Active" | "Upcoming" | "Completed" | "Draft";
 }

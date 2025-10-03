@@ -581,14 +581,23 @@ const Students = () => {
                     selectedStudent.profile_image
                   }`}
                   alt={selectedStudent.name}
-                  className="h-28 w-28  rounded-full object-cover"
+                  className="h-28 w-28 rounded-full object-cover"
                 />
               ) : (
                 <div className="h-12 w-12 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-lg font-semibold text-primary-foreground">
                   {selectedStudent?.name?.slice(0, 2).toUpperCase() || "ST"}
                 </div>
               )}
-              {selectedStudent?.name || "Student Profile"}
+
+              <div className="flex flex-col">
+                <span>{selectedStudent?.name || "Student Profile"}</span>
+                {selectedStudent?.course_name && (
+                  <span className="text-sm font-medium text-gray-600">
+                    {selectedStudent.course_name}
+                  </span>
+                )}
+              </div>
+
               <Badge
                 className={getStatusBadge(
                   selectedStudent?.can_access_profile ? "Active" : "Pending"

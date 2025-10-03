@@ -6,18 +6,8 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Users } from "lucide-react";
+import type { Course } from "@/types";
 
-interface Course {
-  id: number;
-  title: string;
-  sub_title?: string;
-  description?: string;
-  image?: string;
-  tutor?: string | null;
-  duration?: string | null;
-  price?: string | null;
-  status?: string;
-}
 
 interface CourseDetailsModalProps {
   open: boolean;
@@ -86,7 +76,7 @@ const CourseDetailsModal = ({
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-muted-foreground" />
               <span className="text-muted-foreground">Instructor:</span>
-              <span className="font-medium">{course.tutor || "N/A"}</span>
+              <span className="font-medium">{course.tutor_name || "N/A"}</span>
             </div>
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-muted-foreground" />

@@ -178,16 +178,6 @@ export default function BatchesPage() {
             <div className="space-y-3 mb-4">
               <div className="flex items-center gap-3 text-sm">
                 <div className="flex items-center gap-2 text-gray-600">
-                  <User className="w-4 h-4" />
-                  <span className="font-medium">Tutor:</span>
-                </div>
-                <span className="text-gray-900 font-medium">
-                  {b.tutor?.name}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-3 text-sm">
-                <div className="flex items-center gap-2 text-gray-600">
                   <Calendar className="w-4 h-4" />
                   <span className="font-medium">Date:</span>
                 </div>
@@ -197,11 +187,17 @@ export default function BatchesPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex items-center gap-2 text-sm">
                   <Clock className="w-4 h-4 text-gray-600" />
-                  <span className="text-gray-900">{b.time_start}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Timer className="w-4 h-4 text-gray-600" />
-                  <span className="text-gray-900">{b.duration} hrs</span>
+                  <span className="font-semibold text-gray-600">
+                    {b.time_start
+                      ? new Date(
+                          `1970-01-01T${b.time_start}`
+                        ).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          hour12: true,
+                        })
+                      : "--"}
+                  </span>
                 </div>
               </div>
             </div>
@@ -266,19 +262,7 @@ export default function BatchesPage() {
             {/* Modal Content */}
             <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
               {/* Batch Info Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-2xl border border-blue-100">
-                  <div className="flex items-center gap-3">
-                    <User className="w-5 h-5 text-blue-600" />
-                    <div>
-                      <p className="text-sm text-gray-600">Tutor</p>
-                      <p className="font-semibold text-gray-900">
-                        {selectedBatch.tutor?.name}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                 <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-2xl border border-green-100">
                   <div className="flex items-center gap-3">
                     <Calendar className="w-5 h-5 text-green-600" />
@@ -297,7 +281,15 @@ export default function BatchesPage() {
                     <div>
                       <p className="text-sm text-gray-600">Start Time</p>
                       <p className="font-semibold text-gray-900">
-                        {selectedBatch.time_start}
+                        {selectedBatch.time_start
+                          ? new Date(
+                              `1970-01-01T${selectedBatch.time_start}`
+                            ).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              hour12: true,
+                            })
+                          : "--"}
                       </p>
                     </div>
                   </div>

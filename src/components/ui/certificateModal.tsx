@@ -13,13 +13,32 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { StudentProfile } from "@/types";
 
+const courseOptions = [
+  {
+    value: 1,
+    key: "ai_advanced_digital_marketing",
+    label: "AI Advanced Digital Marketing",
+  },
+  { value: 2, key: "graphic_design", label: "Graphic Design" },
+  { value: 3, key: "ui_ux_design", label: "UI/UX Design" },
+  { value: 4, key: "web_and_app_development", label: "Web & App Development" },
+  { value: 5, key: "video_editing", label: "Video Editing" },
+  { value: 6, key: "robotics", label: "Robotics" },
+];
+
+interface SimpleStudent {
+  user: string; 
+  name: string;
+  course: string;
+}
 
 interface CertificateModalProps {
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  students?: StudentProfile[];
+  students?: SimpleStudent[]; 
 }
+
 
 export default function CertificateModal({
   open,
@@ -28,55 +47,66 @@ export default function CertificateModal({
   students,
 }: CertificateModalProps) {
   const [file, setFile] = useState<File | null>(null);
-  const [selectedStudent, setSelectedStudent] = useState<number | null>(null);
-
+  const [selectedStudent, setSelectedStudent] = useState<string>("");
   const [selectedCourse, setSelectedCourse] = useState<string>("");
+  const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null);
   const [description, setDescription] = useState("");
   const [grade, setGrade] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // when student changes, update course
-  useEffect(() => {
-    if (selectedStudent && students) {
-      const student = students.find((s) => s.user === selectedStudent);
-      if (student) {
-        setSelectedCourse(student.course ?? "");
-      }
-    } else {
-      setSelectedCourse("");
-    }
-  }, [selectedStudent, students]);
+  console.log(selectedStudent, "selectedStudent");
+  console.log(selectedCourse, "selectedCourse");
+  console.log(selectedCourseId, "selectedCourseId");
+
+  // when student changes, update course name and ID
+ useEffect(() => {
+   if (selectedStudent && students) {
+     const student = students.find(
+       (s) => s.user.toString() === selectedStudent
+     );
+     if (student) {
+       setSelectedCourse(student.course ?? "");
+       // find by label instead of key
+       const courseObj = courseOptions.find((c) => c.label === student.course);
+       setSelectedCourseId(courseObj?.value ?? null);
+     } else {
+       setSelectedCourse("");
+       setSelectedCourseId(null);
+     }
+   } else {
+     setSelectedCourse("");
+     setSelectedCourseId(null);
+   }
+ }, [selectedStudent, students]);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!file) {
-      alert("Please upload a certificate file");
-      return;
-    }
-    if (!selectedStudent) {
-      alert("Please select a student");
-      return;
-    }
+    if (!file) return alert("Please upload a certificate file");
+    if (!selectedStudent) return alert("Please select a student");
+    if (!selectedCourseId) return alert("Invalid course selected");
 
     const formData = new FormData();
-    formData.append("certificate_file", file);
+    formData.append("certificateFile", file);
     formData.append("description", description);
     formData.append("grade", grade);
-    formData.append("profile", String(selectedStudent));
-
-    if (selectedCourse) formData.append("course", String(selectedCourse));
+    formData.append("profile", selectedStudent);
+    formData.append("course", String(selectedCourseId));
 
     try {
       setLoading(true);
-      await axiosInstance.post("/certificates/", formData, {
+      await axiosInstance.post("/generate-certificate/", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       onSuccess();
       onClose();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error issuing certificate:", err);
-      alert("Failed to issue certificate. Please try again.");
+      alert(
+        err.response?.data?.detail ||
+          "Failed to issue certificate. Please try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -108,14 +138,14 @@ export default function CertificateModal({
             <select
               title="Select a student"
               id="student"
-              value={selectedStudent ?? ""}
-              onChange={(e) => setSelectedStudent(Number(e.target.value))}
+              value={selectedStudent}
+              onChange={(e) => setSelectedStudent(e.target.value)}
               required
               className="w-full border rounded-md p-2"
             >
               <option value="">-- Select a student --</option>
               {(students ?? []).map((student) => (
-                <option key={student.id} value={student.id}>
+                <option key={student.user} value={student.user}>
                   {student.name}
                 </option>
               ))}
