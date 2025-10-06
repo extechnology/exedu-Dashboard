@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from "react";
+
 import axiosInstance from "@/api/axiosInstance";
 import { motion, AnimatePresence } from "framer-motion";
-import { PlusCircle, Mail, Phone, User, X } from "lucide-react";
+import { PlusCircle, Mail, Phone, User, X,Edit } from "lucide-react";
+import EditTutorModal from "@/components/ui/EditTutorModal";
+import { useEffect, useState } from "react";
 
 interface Tutor {
   id: number;
@@ -15,6 +17,8 @@ const TutorPage: React.FC = () => {
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [selectedTutor, setSelectedTutor] = useState<Tutor | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
   const [formData, setFormData] = useState<{
     name: string;
     email: string;
@@ -27,6 +31,12 @@ const TutorPage: React.FC = () => {
     image: null,
   });
 
+
+  const handleTutorUpdated = (updatedTutor: Tutor) => {
+    setTutors((prev) =>
+      prev.map((t) => (t.id === updatedTutor.id ? updatedTutor : t))
+    );
+  };
   const fetchTutors = async () => {
     try {
       const res = await axiosInstance.get<Tutor[]>("/tutor/");
@@ -123,12 +133,23 @@ const TutorPage: React.FC = () => {
           {tutors.map((tutor, index) => (
             <motion.div
               key={tutor.id}
-              className="group bg-white/80 backdrop-blur-sm rounded-3xl p-6 border border-white/40 shadow-sm hover:shadow-xl hover:bg-white transition-all duration-300"
+              className="group relative bg-white/80 backdrop-blur-sm rounded-3xl p-6 border border-white/40 shadow-sm hover:shadow-xl hover:bg-white transition-all duration-300"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
               whileHover={{ scale: 1.02, y: -5 }}
             >
+              <div className="pt-4 absolute right-5 top-3 flex justify-center" title="Edit Tutor">
+                <div
+                  onClick={() => {
+                    setSelectedTutor(tutor);
+                    setEditOpen(true);
+                  }}
+                >
+                  <Edit  className="text-slate-400 group-hover:text-indigo-600 h-4 w-4" />
+                </div>
+              </div>
+
               {/* Avatar */}
               <div className="flex justify-center mb-4">
                 {tutor.image ? (
@@ -270,7 +291,7 @@ const TutorPage: React.FC = () => {
                     <input
                       type="text"
                       name="phone_number"
-                      placeholder="+1 (555) 123-4567"
+                      placeholder="+91 98765 43210"
                       value={formData.phone_number}
                       onChange={handleChange}
                       className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-indigo-400 focus:outline-none transition-colors bg-slate-50 focus:bg-white"
@@ -315,6 +336,12 @@ const TutorPage: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
+      <EditTutorModal
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        tutor={selectedTutor}
+        onTutorUpdated={handleTutorUpdated}
+      />
     </div>
   );
 };

@@ -132,7 +132,7 @@ export interface CourseOptions {
 }
 
 
-type Tutor = {
+export interface Tutor  {
   id: number;
   name: string;
   email: string;
@@ -147,7 +147,7 @@ export interface Batch {
   tutor: Tutor;
   date: string;
   time_start: string;
-  duration: string;
+  end_date: string;
   course_name: string;
 }
 

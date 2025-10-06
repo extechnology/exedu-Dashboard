@@ -19,6 +19,7 @@ import Enquiries from "./pages/admin/Enquiries";
 import BatchesPage from "./pages/admin/Batches";
 import TutorPage from "./pages/admin/Tutor";
 import SessionPage from "./pages/admin/Session";
+import StudentPersonalDetails from "./pages/admin/StudentPersonalDetails";
 import { Login } from "./pages/admin/Login";
 
 
@@ -44,6 +45,7 @@ const App = () => (
           <Route path="/admin/contacts" element={<CRMLayout><ContactPage /></CRMLayout>} />
           <Route path="/admin/notifications" element={<CRMLayout><NotificationsPage /></CRMLayout>} />
           <Route path="/admin/enquiries" element={<CRMLayout><Enquiries /></CRMLayout>} />
+          <Route path="/admin/students/:id" element={<CRMLayout><StudentPersonalDetails /></CRMLayout>} />
           <Route path="/admin/batch" element={<CRMLayout><BatchesPage /></CRMLayout>} />
           <Route path="/login" element={<Login />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

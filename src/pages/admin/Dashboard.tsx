@@ -17,7 +17,6 @@ import useStudentProfile from "@/hooks/useStudentProfile";
 import AddCourseModal from "@/components/ui/AddCourseModal";
 import { Link } from "react-router-dom";
 
-
 type StatusVariant = "Active" | "Completed" | "Pending";
 
 const Dashboard = () => {
@@ -37,7 +36,6 @@ const Dashboard = () => {
   const [showAll, setShowAll] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const studentsPerPage = 5;
-
 
   const allStudents = Array.isArray(studentProfile) ? studentProfile : [];
 
@@ -84,27 +82,25 @@ const Dashboard = () => {
     },
   ];
 
+  function formatCourseName(
+    course: string | { title?: string; course_name?: string } | null
+  ) {
+    if (!course) return "No Course";
 
-function formatCourseName(
-  course: string | { title?: string; course_name?: string } | null
-) {
-  if (!course) return "No Course";
+    let courseTitle = "";
 
-  let courseTitle = "";
+    if (typeof course === "string") {
+      courseTitle = course;
+    } else if (typeof course === "object") {
+      courseTitle = course.course_name || course.title || "";
+    }
 
-  if (typeof course === "string") {
-    courseTitle = course;
-  } else if (typeof course === "object") {
-    courseTitle = course.course_name || course.title || "";
+    if (!courseTitle) return "No Course";
+
+    return courseTitle
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (c) => c.toUpperCase());
   }
-
-  if (!courseTitle) return "No Course";
-
-  return courseTitle
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
 
   const recentStudents = Array.isArray(studentProfile)
     ? studentProfile.slice(0, 5)
@@ -132,7 +128,6 @@ function formatCourseName(
     }
   };
 
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -154,28 +149,40 @@ function formatCourseName(
       {/* Stats Grid */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
-          <Card
+          <Link
+            to={`/admin/${
+              stat.name === "Active Courses"
+                ? "courses"
+                : stat.name === "Certificates Issued"
+                ? "certificates"
+                : "students"
+            }`}
             key={stat.name}
-            className="relative overflow-hidden bg-gradient-to-br from-card to-card/50 border-0 shadow-lg hover:shadow-xl transition-all duration-300"
+            className="text-decoration-none"
           >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {stat.name}
-              </CardTitle>
-              <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-                <stat.icon className="h-5 w-5 text-primary" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">
-                {stat.value}
-              </div>
-              <p className="text-xs text-success font-medium flex items-center gap-1 mt-1">
-                <TrendingUp className="h-3 w-3" />
-                {stat.change} from last month
-              </p>
-            </CardContent>
-          </Card>
+            <Card
+              key={stat.name}
+              className="relative overflow-hidden bg-gradient-to-br from-card to-card/50 border-0 shadow-lg hover:shadow-xl transition-all duration-300"
+            >
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {stat.name}
+                </CardTitle>
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+                  <stat.icon className="h-5 w-5 text-primary" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-foreground">
+                  {stat.value}
+                </div>
+                <p className="text-xs text-success font-medium flex items-center gap-1 mt-1">
+                  <TrendingUp className="h-3 w-3" />
+                  {stat.change} from last month
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
         ))}
       </div>
 

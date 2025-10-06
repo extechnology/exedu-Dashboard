@@ -2,6 +2,7 @@ import { useState } from "react";
 import useCourseOptions from "@/hooks/useCourseOptions";
 import axiosInstance from "@/api/axiosInstance";
 import { toast } from "sonner";
+import { format } from "path";
 
 interface AddBatchModalProps {
   open: boolean;
@@ -19,7 +20,7 @@ export default function AddBatchModal({
 
   const [time, setTime] = useState("");
 
-  const hours = Array.from({ length: 12 }, (_, i) => i + 1); 
+  const hours = Array.from({ length: 12 }, (_, i) => i + 1);
   const minutes = ["00", "15", "30", "45"];
   const periods = ["AM", "PM"];
   const [loading, setLoading] = useState(false);
@@ -29,6 +30,7 @@ export default function AddBatchModal({
     batch_number: "",
     date: "",
     time_start: "",
+    end_date: "",
   });
 
   const handleChange = (
@@ -43,44 +45,44 @@ export default function AddBatchModal({
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setLoading(true);
-  setError("");
+    e.preventDefault();
+    setLoading(true);
+    setError("");
 
-  try {
-    let formattedTime = "";
-    if (time) {
-      const [hhmm, period] = time.split(" ");
-      let [hours, minutes] = hhmm.split(":").map((x) => parseInt(x, 10));
+    try {
+      let formattedTime = "";
+      if (time) {
+        const [hhmm, period] = time.split(" ");
+        let [hours, minutes] = hhmm.split(":").map((x) => parseInt(x, 10));
 
-      if (period === "PM" && hours < 12) hours += 12;
-      if (period === "AM" && hours === 12) hours = 0;
+        if (period === "PM" && hours < 12) hours += 12;
+        if (period === "AM" && hours === 12) hours = 0;
 
-      formattedTime = `${hours.toString().padStart(2, "0")}:${minutes
-        .toString()
-        .padStart(2, "0")}:00`;
+        formattedTime = `${hours.toString().padStart(2, "0")}:${minutes
+          .toString()
+          .padStart(2, "0")}:00`;
+      }
+
+      const payload = {
+        ...formData,
+        course: Number(formData.course),
+        time_start: formattedTime,
+      };
+
+      await axiosInstance.post("/batches/", payload, {
+        headers: { "Content-Type": "application/json" },
+      });
+
+      setLoading(false);
+      onSuccess();
+      onClose();
+      toast.success("Batch created successfully");
+    } catch (err) {
+      console.error(err);
+      setError("Failed to create batch");
+      setLoading(false);
     }
-
-    const payload = {
-      ...formData,
-      course: Number(formData.course),
-      time_start: formattedTime,
-    };
-
-    await axiosInstance.post("/batches/", payload, {
-      headers: { "Content-Type": "application/json" },
-    });
-
-    setLoading(false);
-    onSuccess();
-    onClose();
-    toast.success("Batch created successfully");
-  } catch (err) {
-    console.error(err);
-    setError("Failed to create batch");
-    setLoading(false);
-  }
-};
+  };
 
   if (!open) return null;
 
@@ -99,7 +101,6 @@ export default function AddBatchModal({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Tutor dropdown */}
-          
 
           <select
             title="Select Course"
@@ -118,24 +119,63 @@ export default function AddBatchModal({
           </select>
 
           {/* Batch Number */}
-          <input
-            type="text"
-            name="batch_number"
-            value={formData.batch_number}
-            onChange={handleChange}
-            placeholder="Batch Number"
-            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-violet-500 outline-none"
-          />
+          <div className="space-y-4">
+            {/* Batch Number */}
+            <div>
+              <label
+                htmlFor="batch_number"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Batch Number
+              </label>
+              <input
+                type="text"
+                id="batch_number"
+                name="batch_number"
+                value={formData.batch_number}
+                onChange={handleChange}
+                placeholder="Enter batch number"
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-violet-500 outline-none"
+              />
+            </div>
 
-          {/* Date */}
-          <input
-            title="Select Date"
-            type="date"
-            name="date"
-            value={formData.date}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-violet-500 outline-none"
-          />
+            {/* Start Date */}
+            <div>
+              <label
+                htmlFor="start_date"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Starting Date
+              </label>
+              <input
+                title="Select Date"
+                type="date"
+                id="date"
+                name="date"
+                value={formData.date}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-violet-500 outline-none"
+              />
+            </div>
+
+            {/* End Date */}
+            <div>
+              <label
+                htmlFor="end_date"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Ending Date
+              </label>
+              <input
+                type="date"
+                id="end_date"
+                name="end_date"
+                value={formData.end_date}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-violet-500 outline-none"
+              />
+            </div>
+          </div>
 
           {/* Time */}
           <div className="flex gap-2 items-center">
@@ -193,7 +233,6 @@ export default function AddBatchModal({
               <p className="text-gray-500 font-medium">Time: {time}</p>
             </div>
           </div>
-
 
           <button
             type="submit"

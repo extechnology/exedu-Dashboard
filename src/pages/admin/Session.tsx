@@ -2,10 +2,20 @@ import React, { useState, useEffect } from "react";
 import axiosInstance from "@/api/axiosInstance";
 import ExeduButton from "@/components/ui/exedu-button";
 import SessionModal from "@/components/ui/session-modal";
-import { Calendar, Clock, Users, User, Eye, X, Search } from "lucide-react";
+import {
+  Calendar,
+  Clock,
+  Users,
+  User,
+  Eye,
+  X,
+  Search,
+  Edit,
+} from "lucide-react";
 import { Session } from "@/types";
 import useSession from "@/hooks/useSession";
 import useCourseOptions from "@/hooks/useCourseOptions";
+import EditSessionModal from "@/components/ui/EditSessionModal";
 
 const SessionPage: React.FC = () => {
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -15,8 +25,11 @@ const SessionPage: React.FC = () => {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const { session } = useSession();
   const { courseOptions } = useCourseOptions();
-  console.log(session, "session in session page");
-  console.log(selectedSession, "selsession in session page");
+  const [editModalOpen, setEditModalOpen] = useState(false);
+
+  const handleSessionUpdate = (updated: Session) => {
+    setSessions((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+  };
 
   const sessionsWithCourseTitle = session.map((session) => {
     const course = courseOptions.find((c) => c.id === session.course);
@@ -145,7 +158,6 @@ const SessionPage: React.FC = () => {
             return (
               <div
                 key={session.id}
-                onClick={() => handleSessionClick(session)}
                 className="group bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer transform hover:-translate-y-2 border border-gray-100 overflow-hidden"
               >
                 {/* Card Header */}
@@ -162,7 +174,18 @@ const SessionPage: React.FC = () => {
                       </div>
                     </div>
                     <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Eye className="w-5 h-5" />
+                      <div onClick={() => handleSessionClick(session)}>
+                        <Eye className="w-5 h-5" />
+                      </div>
+                      <div
+                        onClick={() => {
+                          setSelectedSession(session);
+                          setEditModalOpen(true);
+                        }}
+                        className="text-sm py-3 rounded-md  text-white"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -435,12 +458,11 @@ const SessionPage: React.FC = () => {
                   </h3>
                 </div>
                 {selectedSession.student_details.length > 0 ? (
-                  <div className="grid grid-cols-1 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {selectedSession.student_details
-                      .slice(0, 3)
                       .map((student) => {
                         let imgSrc: string | null = null;
-                        console.log("Rendering student:", student);
+                        console.log("Rendering student:", student.name);
 
                         if (student.profile_image) {
                           if (typeof student.profile_image === "string") {
@@ -483,6 +505,12 @@ const SessionPage: React.FC = () => {
           </div>
         </div>
       )}
+      <EditSessionModal
+        isOpen={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        sessionData={selectedSession}
+        onUpdate={handleSessionUpdate}
+      />
     </div>
   );
 };

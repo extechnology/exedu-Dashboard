@@ -15,10 +15,12 @@ import {
   ChevronRight,
   GraduationCap,
   Mail,
+  Edit,
 } from "lucide-react";
 import useStudentProfile from "@/hooks/useStudentProfile";
 import type { Tutor } from "@/api/getTutorOptions";
 import type { Batch } from "@/types";
+import { Link } from "react-router-dom";
 
 export default function BatchesPage() {
   const [openModal, setOpenModal] = useState(false);
@@ -182,6 +184,8 @@ export default function BatchesPage() {
                   <span className="font-medium">Date:</span>
                 </div>
                 <span className="text-gray-900">{b.date}</span>
+                <span className="text-gray-400">to</span>
+                <span className="text-gray-900">{b.end_date || "--"}</span>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -257,6 +261,12 @@ export default function BatchesPage() {
                   </p>
                 </div>
               </div>
+              <div className="flex justify-end relative bottom-2">
+                <button className="flex items-center gap-2 px-3 py-1.5 shadow-lg backdrop-blur-md  text-white rounded-lg transition-colors">
+                  <span>Edit</span>
+                  <Edit className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             {/* Modal Content */}
@@ -269,7 +279,7 @@ export default function BatchesPage() {
                     <div>
                       <p className="text-sm text-gray-600">Date</p>
                       <p className="font-semibold text-gray-900">
-                        {selectedBatch.date}
+                        {selectedBatch.date} to {selectedBatch.end_date || "--"}
                       </p>
                     </div>
                   </div>
@@ -301,7 +311,7 @@ export default function BatchesPage() {
                     <div>
                       <p className="text-sm text-gray-600">Duration</p>
                       <p className="font-semibold text-gray-900">
-                        {selectedBatch.duration} hrs
+                        {selectedBatch.time_start} hrs
                       </p>
                     </div>
                   </div>
@@ -327,48 +337,53 @@ export default function BatchesPage() {
                         key={student.unique_id}
                         className="bg-white p-4 rounded-2xl border border-gray-200 hover:shadow-md transition-shadow"
                       >
-                        <div className="flex items-center gap-4">
-                          <div className="relative">
-                            {student.profile_image ? (
-                              <img
-                                src={`${import.meta.env.VITE_MEDIA_BASE_URL}${
-                                  student.profile_image
-                                }`}
-                                alt={student.name}
-                                className="w-14 h-14 rounded-full object-cover border-2 border-gray-200"
-                              />
-                            ) : (
-                              <div className="h-14 w-14 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-sm font-semibold text-primary-foreground">
-                                {student.name
-                                  ? student.name.charAt(0).toUpperCase()
-                                  : "?"}
+                        <Link
+                          to={`/admin/students/${student.id}`}
+                          className="text-decoration-none cursor-pointer"
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="relative">
+                              {student.profile_image ? (
+                                <img
+                                  src={`${import.meta.env.VITE_MEDIA_BASE_URL}${
+                                    student.profile_image
+                                  }`}
+                                  alt={student.name}
+                                  className="w-14 h-14 rounded-full object-cover border-2 border-gray-200"
+                                />
+                              ) : (
+                                <div className="h-14 w-14 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-sm font-semibold text-primary-foreground">
+                                  {student.name
+                                    ? student.name.charAt(0).toUpperCase()
+                                    : "?"}
+                                </div>
+                              )}
+                              <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white"></div>
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-gray-900 text-lg">
+                                {student.name}
+                              </h4>
+                              <div className="flex items-center gap-2 mt-1">
+                                <Mail className="w-4 h-4 text-gray-400" />
+                                <p className="text-sm text-gray-600">
+                                  {student.email}
+                                </p>
                               </div>
-                            )}
-                            <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white"></div>
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-gray-900 text-lg">
-                              {student.name}
-                            </h4>
-                            <div className="flex items-center gap-2 mt-1">
-                              <Mail className="w-4 h-4 text-gray-400" />
-                              <p className="text-sm text-gray-600">
-                                {student.email}
-                              </p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <BookOpen className="w-4 h-4 text-gray-400" />
+                                <p className="text-sm text-gray-500">
+                                  {student.course_name}
+                                </p>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-2 mt-1">
-                              <BookOpen className="w-4 h-4 text-gray-400" />
-                              <p className="text-sm text-gray-500">
-                                {student.course_name}
-                              </p>
+                            <div className="text-right">
+                              <span className="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full">
+                                Active
+                              </span>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <span className="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full">
-                              Active
-                            </span>
-                          </div>
-                        </div>
+                        </Link>
                       </div>
                     ))}
                   </div>

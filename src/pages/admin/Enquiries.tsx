@@ -30,7 +30,7 @@ const Enquiries: React.FC = () => {
                 <th className="p-3 text-left">Email</th>
                 <th className="p-3 text-left">Course Title</th>
                 <th className="p-3 text-left">Created At</th>
-                <th className="p-3 text-left">Action</th>
+                {/* <th className="p-3 text-left">Action</th> */}
               </tr>
             </thead>
             <tbody>
@@ -47,11 +47,11 @@ const Enquiries: React.FC = () => {
                   <td className="p-3 border border-gray-200">
                     {new Date(lead.created_at).toLocaleString()}
                   </td>
-                  <td className="p-3 border border-gray-200">
+                  {/* <td className="p-3 border border-gray-200">
                     <button className="px-4 py-2 rounded-lg text-white font-medium bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:opacity-90 transition">
                       View
                     </button>
-                  </td>
+                  </td> */}
                 </tr>
               ))}
               {enquiry.length === 0 && (

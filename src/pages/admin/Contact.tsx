@@ -21,7 +21,7 @@ const ContactPage: React.FC = () => {
                 <th className="p-3 text-left">Number</th>
                 <th className="p-3 text-left">Course</th>
                 <th className="p-3 text-left">Submitted At</th>
-                <th className="p-3 text-left">Action</th>
+                {/* <th className="p-3 text-left">Action</th> */}
               </tr>
             </thead>
             <tbody>
@@ -44,11 +44,11 @@ const ContactPage: React.FC = () => {
                   <td className="p-3 border border-gray-200">
                     {new Date(enquiry.submitted_at).toLocaleString()}
                   </td>
-                  <td className="p-3 border border-gray-200">
+                  {/* <td className="p-3 border border-gray-200">
                     <button className="px-4 py-2 rounded-lg text-white font-medium bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:opacity-90 transition">
                       View
                     </button>
-                  </td>
+                  </td> */}
                 </tr>
               ))}
               {contact.length === 0 && (

@@ -27,7 +27,6 @@ import useStudentProfile from "@/hooks/useStudentProfile";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
-
 const Certificates = () => {
   const [certificates, setCertificates] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -36,7 +35,6 @@ const Certificates = () => {
   const { studentProfile } = useStudentProfile();
   console.log(studentProfile, "studentProfile ");
   console.log(certificates, "certificates ");
-
 
   const refreshCertificates = async () => {
     try {
@@ -55,17 +53,21 @@ const Certificates = () => {
     .slice()
     .sort((a, b) => b.id - a.id)
     .filter((cert) => {
+      const term = searchTerm.toLowerCase().trim();
+
       const matchesSearch =
-        cert.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        cert.course.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        cert.certificateNumber.toLowerCase().includes(searchTerm.toLowerCase());
+        (cert.studentName?.toLowerCase().includes(term) ?? false) ||
+        (String(cert.course)?.toLowerCase().includes(term) ?? false) ||
+        (cert.certificateNumber?.toLowerCase().includes(term) ?? false);
 
       const matchesStatus =
         statusFilter === "all" ||
-        cert.status.toLowerCase() === statusFilter.toLowerCase();
+        cert.status?.toLowerCase() === statusFilter.toLowerCase();
 
       return matchesSearch && matchesStatus;
     });
+
+
 
   const getStatusBadge = (status: string) => {
     const variants = {
@@ -127,7 +129,6 @@ const Certificates = () => {
     saveAs(blob, `Certificates_${new Date().toISOString()}.xlsx`);
   };
 
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -185,7 +186,7 @@ const Certificates = () => {
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-card to-card/50">
+        {/* <Card className="border-0 shadow-lg bg-gradient-to-br from-card to-card/50">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
@@ -237,7 +238,7 @@ const Certificates = () => {
               </div>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
 
       {/* Search and Filters */}
@@ -253,7 +254,7 @@ const Certificates = () => {
                 className="pl-10"
               />
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            {/* <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
@@ -263,7 +264,7 @@ const Certificates = () => {
                 <SelectItem value="pending">Pending</SelectItem>
                 <SelectItem value="draft">Draft</SelectItem>
               </SelectContent>
-            </Select>
+            </Select> */}
           </div>
         </CardContent>
       </Card>
@@ -388,18 +389,13 @@ const Certificates = () => {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Button
               variant="outline"
+              onClick={() => setShowModal(true)}
               className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-primary/5 hover:border-primary"
             >
               <Award className="h-6 w-6 text-primary" />
               <span>Create Certificate</span>
             </Button>
-            <Button
-              variant="outline"
-              className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-success/5 hover:border-success"
-            >
-              <FileText className="h-6 w-6 text-success" />
-              <span>Bulk Issue</span>
-            </Button>
+
             <Button
               variant="outline"
               className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-warning/5 hover:border-warning"
@@ -407,14 +403,6 @@ const Certificates = () => {
             >
               <Download className="h-6 w-6 text-warning" />
               <span>Export Report</span>
-            </Button>
-
-            <Button
-              variant="outline"
-              className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-accent/5 hover:border-accent"
-            >
-              <User className="h-6 w-6 text-accent" />
-              <span>Student Lookup</span>
             </Button>
           </div>
         </CardContent>

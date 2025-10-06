@@ -28,21 +28,12 @@ export default function SessionModal({
   const [selectedTutor, setSelectedTutor] = useState<any>(null);
   const [selectedStudents, setSelectedStudents] = useState<any[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<any>(null);
-
-
   const { tutorOptions } = useTutorOptions();
   const { studentProfile: students } = useStudentProfile();
-  // console.log(tutorOptions,"tutor options")
-  // console.log(students,"student options")
-  // console.log(selectedStudents, "selected students");
-  // console.log(selectedTutor, "selected tutor");
-  console.log(courseOptions,"course options")
-
   const [showTutorModal, setShowTutorModal] = useState(false);
   const [showStudentModal, setShowStudentModal] = useState(false);
 
   
-
   const handleSave = async () => {
     try {
       const payload = {
