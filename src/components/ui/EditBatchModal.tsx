@@ -1,29 +1,27 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import useCourseOptions from "@/hooks/useCourseOptions";
 import axiosInstance from "@/api/axiosInstance";
 import { toast } from "sonner";
 
-interface AddBatchModalProps {
+interface EditBatchModalProps {
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  batch: any; 
 }
 
-export default function AddBatchModal({
+export default function EditBatchModal({
   open,
   onClose,
   onSuccess,
-}: AddBatchModalProps) {
+  batch,
+}: EditBatchModalProps) {
   const { courseOptions } = useCourseOptions();
-  console.log(courseOptions, "courseOptions");
 
   const [time, setTime] = useState("");
-
-  const hours = Array.from({ length: 12 }, (_, i) => i + 1);
-  const minutes = ["00", "15", "30", "45"];
-  const periods = ["AM", "PM"];
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
   const [formData, setFormData] = useState({
     course: "",
     batch_number: "",
@@ -32,11 +30,38 @@ export default function AddBatchModal({
     end_date: "",
   });
 
+  // Populate existing data
+  useEffect(() => {
+    if (batch) {
+      const date = batch?.date || "";
+      const end_date = batch?.end_date || "";
+      const time_start = batch?.time_start || "";
+
+      // Convert "HH:MM:SS" to "hh:mm AM/PM"
+      let formattedTime = "";
+      if (time_start) {
+        const [h, m] = time_start.split(":").map(Number);
+        const period = h >= 12 ? "PM" : "AM";
+        const hour12 = h % 12 || 12;
+        formattedTime = `${hour12}:${m.toString().padStart(2, "0")} ${period}`;
+      }
+
+      setFormData({
+        course: batch?.course?.id || batch?.course || "",
+        batch_number: batch?.batch_number || "",
+        date,
+        end_date,
+        time_start,
+      });
+
+      setTime(formattedTime);
+    }
+  }, [batch]);
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-
     setFormData({
       ...formData,
       [name]: name === "course" ? Number(value) : value,
@@ -68,22 +93,26 @@ export default function AddBatchModal({
         time_start: formattedTime,
       };
 
-      await axiosInstance.post("/batches/", payload, {
+      await axiosInstance.patch(`/batches/${batch.id}/`, payload, {
         headers: { "Content-Type": "application/json" },
       });
 
       setLoading(false);
       onSuccess();
       onClose();
-      toast.success("Batch created successfully");
+      toast.success("Batch updated successfully");
     } catch (err) {
       console.error(err);
-      setError("Failed to create batch");
+      setError("Failed to update batch");
       setLoading(false);
     }
   };
 
   if (!open) return null;
+
+  const hours = Array.from({ length: 12 }, (_, i) => i + 1);
+  const minutes = ["00", "15", "30", "45"];
+  const periods = ["AM", "PM"];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
@@ -95,12 +124,11 @@ export default function AddBatchModal({
           ✕
         </button>
 
-        <h2 className="text-2xl font-bold text-center mb-4">Add New Batch</h2>
+        <h2 className="text-2xl font-bold text-center mb-4">Edit Batch</h2>
         {error && <p className="text-red-500 mb-2">{error}</p>}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Tutor dropdown */}
-
+          {/* Course */}
           <select
             title="Select Course"
             name="course"
@@ -118,71 +146,71 @@ export default function AddBatchModal({
           </select>
 
           {/* Batch Number */}
-          <div className="space-y-4">
-            {/* Batch Number */}
-            <div>
-              <label
-                htmlFor="batch_number"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Batch Number
-              </label>
-              <input
-                type="text"
-                id="batch_number"
-                name="batch_number"
-                value={formData.batch_number}
-                onChange={handleChange}
-                placeholder="Enter batch number"
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-violet-500 outline-none"
-              />
-            </div>
-
-            {/* Start Date */}
-            <div>
-              <label
-                htmlFor="start_date"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Starting Date
-              </label>
-              <input
-                title="Select Date"
-                type="date"
-                id="date"
-                name="date"
-                value={formData.date}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-violet-500 outline-none"
-              />
-            </div>
-
-            {/* End Date */}
-            <div>
-              <label
-                htmlFor="end_date"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Ending Date
-              </label>
-              <input
-                type="date"
-                id="end_date"
-                name="end_date"
-                value={formData.end_date}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-violet-500 outline-none"
-              />
-            </div>
+          <div>
+            <label
+              htmlFor="batch_number"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Batch Number
+            </label>
+            <input
+              type="text"
+              id="batch_number"
+              name="batch_number"
+              value={formData.batch_number}
+              onChange={handleChange}
+              placeholder="Enter batch number"
+              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-violet-500 outline-none"
+            />
           </div>
 
-          {/* Time */}
+          {/* Start & End Date */}
+          <div>
+            <label
+              htmlFor="date"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Starting Date
+            </label>
+            <input
+              type="date"
+              id="date"
+              name="date"
+              value={formData.date}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-violet-500 outline-none"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="end_date"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Ending Date
+            </label>
+            <input
+              type="date"
+              id="end_date"
+              name="end_date"
+              value={formData.end_date}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-violet-500 outline-none"
+            />
+          </div>
+
+          {/* Time Selector */}
           <div className="flex gap-2 items-center">
-            {/* Hours */}
             <select
-              title="Select Time"
+              title="Select Hours"
               value={time.split(":")[0] || ""}
-              onChange={(e) => setTime(e.target.value)}
+              onChange={(e) =>
+                setTime(
+                  `${e.target.value}:${time.split(":")[1] || ""} ${
+                    time.split(" ")[1] || ""
+                  }`
+                )
+              }
               className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-violet-500"
             >
               <option value="">HH</option>
@@ -193,13 +221,14 @@ export default function AddBatchModal({
               ))}
             </select>
 
-            {/* Minutes */}
             <select
-              title="Select Time"
+              title="Select Minutes"
               value={time.split(":")[1]?.slice(0, 2) || ""}
               onChange={(e) =>
                 setTime(
-                  (prev) => `${prev.split(":")[0] || ""}:${e.target.value}`
+                  `${time.split(":")[0] || ""}:${e.target.value} ${
+                    time.split(" ")[1] || ""
+                  }`
                 )
               }
               className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-violet-500"
@@ -212,12 +241,11 @@ export default function AddBatchModal({
               ))}
             </select>
 
-            {/* AM/PM */}
             <select
-              title="Select Time"
+              title="Select AM/PM"
               value={time.split(" ")[1] || ""}
               onChange={(e) =>
-                setTime((prev) => `${prev.split(" ")[0]} ${e.target.value}`)
+                setTime(`${time.split(" ")[0] || ""} ${e.target.value}`)
               }
               className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-violet-500"
             >
@@ -228,9 +256,8 @@ export default function AddBatchModal({
                 </option>
               ))}
             </select>
-            <div>
-              <p className="text-gray-500 font-medium">Time: {time}</p>
-            </div>
+
+            <p className="text-gray-500 font-medium">Time: {time}</p>
           </div>
 
           <button
@@ -238,7 +265,7 @@ export default function AddBatchModal({
             disabled={loading}
             className="w-full py-2 rounded-lg bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white font-semibold hover:opacity-90 transition disabled:opacity-50"
           >
-            {loading ? "Saving..." : "Save Batch"}
+            {loading ? "Saving..." : "Update Batch"}
           </button>
         </form>
       </div>

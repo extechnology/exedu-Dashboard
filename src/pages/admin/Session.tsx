@@ -158,6 +158,7 @@ const SessionPage: React.FC = () => {
             return (
               <div
                 key={session.id}
+                onClick={() => handleSessionClick(session)}
                 className="group bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer transform hover:-translate-y-2 border border-gray-100 overflow-hidden"
               >
                 {/* Card Header */}
@@ -174,17 +175,8 @@ const SessionPage: React.FC = () => {
                       </div>
                     </div>
                     <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                      <div onClick={() => handleSessionClick(session)}>
+                      <div>
                         <Eye className="w-5 h-5" />
-                      </div>
-                      <div
-                        onClick={() => {
-                          setSelectedSession(session);
-                          setEditModalOpen(true);
-                        }}
-                        className="text-sm py-3 rounded-md  text-white"
-                      >
-                        <Edit className="w-4 h-4" />
                       </div>
                     </div>
                   </div>
@@ -366,13 +358,23 @@ const SessionPage: React.FC = () => {
                   </div>
                 </div>
                 <button
-                  title="open modal"
+                  title="close modal"
                   type="button"
                   onClick={() => setShowDetailModal(false)}
                   className="text-white hover:text-indigo-200 transition-colors p-2 hover:bg-white/10 rounded-lg"
                 >
                   <X className="w-6 h-6" />
                 </button>
+              </div>
+              <div
+                onClick={() => {
+                  setSelectedSession(selectedSession);
+                  setEditModalOpen(true);
+                }}
+                title="edit session"
+                className="text-sm relative bottom-4 right-3 rounded-md flex justify-end  text-white"
+              >
+                <Edit className="w-5 h-5"  />
               </div>
             </div>
 
@@ -459,40 +461,39 @@ const SessionPage: React.FC = () => {
                 </div>
                 {selectedSession.student_details.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {selectedSession.student_details
-                      .map((student) => {
-                        let imgSrc: string | null = null;
-                        console.log("Rendering student:", student.name);
+                    {selectedSession.student_details.map((student) => {
+                      let imgSrc: string | null = null;
+                      console.log("Rendering student:", student.name);
 
-                        if (student.profile_image) {
-                          if (typeof student.profile_image === "string") {
-                            imgSrc = student.profile_image;
-                          } else if (student.profile_image instanceof File) {
-                            imgSrc = URL.createObjectURL(student.profile_image);
-                          }
+                      if (student.profile_image) {
+                        if (typeof student.profile_image === "string") {
+                          imgSrc = student.profile_image;
+                        } else if (student.profile_image instanceof File) {
+                          imgSrc = URL.createObjectURL(student.profile_image);
                         }
+                      }
 
-                        return (
-                          <div key={student.id} className="relative">
-                            {imgSrc ? (
-                              <div className="flex items-center gap-2">
-                                <img
-                                  src={imgSrc}
-                                  alt={student.name || "Student"}
-                                  className="w-8 h-8 rounded-full border-2 border-white shadow-sm"
-                                />
-                                <h1>{student?.name ?? "Student"}</h1>
-                              </div>
-                            ) : (
-                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 border-2 border-white shadow-sm flex items-center justify-center">
-                                <span className="text-xs font-semibold text-white">
-                                  {student.name?.charAt(0).toUpperCase()}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
+                      return (
+                        <div key={student.id} className="relative">
+                          {imgSrc ? (
+                            <div className="flex items-center gap-2">
+                              <img
+                                src={imgSrc}
+                                alt={student.name || "Student"}
+                                className="w-8 h-8 rounded-full border-2 border-white shadow-sm"
+                              />
+                              <h1>{student?.name ?? "Student"}</h1>
+                            </div>
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 border-2 border-white shadow-sm flex items-center justify-center">
+                              <span className="text-xs font-semibold text-white">
+                                {student.name?.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="text-center py-8 text-gray-500">

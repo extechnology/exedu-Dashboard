@@ -91,7 +91,7 @@ export default function EditSessionModal({
     <>
       <div
         onClick={onClose}
-        className="fixed inset-0 bg-black/50 flex items-center justify-center z-40"
+        className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
       >
         <motion.div
           onClick={(e) => e.stopPropagation()}

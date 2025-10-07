@@ -21,14 +21,22 @@ import useStudentProfile from "@/hooks/useStudentProfile";
 import type { Tutor } from "@/api/getTutorOptions";
 import type { Batch } from "@/types";
 import { Link } from "react-router-dom";
+import EditBatchModal from "@/components/ui/EditBatchModal";
+import StudentPersonalDetails from "./StudentPersonalDetails";
+import Modal from "@/components/ui/genericModal";
 
 export default function BatchesPage() {
   const [openModal, setOpenModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
-  const { batch } = useBatches();
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const { batch, fetchBatches } = useBatches();
   const { studentProfile } = useStudentProfile();
   const [selectedBatch, setSelectedBatch] = useState<Batch | null>(null);
+  const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
+  const [studentModalOpen, setStudentModalOpen] = useState(false);
+
   console.log(selectedBatch);
   console.log(batch, "batch");
   console.log(studentProfile, "studentProfile");
@@ -262,7 +270,10 @@ export default function BatchesPage() {
                 </div>
               </div>
               <div className="flex justify-end relative bottom-2">
-                <button className="flex items-center gap-2 px-3 py-1.5 shadow-lg backdrop-blur-md  text-white rounded-lg transition-colors">
+                <button
+                  className="flex items-center gap-2 px-3 py-1.5 shadow-lg backdrop-blur-md text-white rounded-lg transition-colors hover:bg-white/20"
+                  onClick={() => setEditModalOpen(true)}
+                >
                   <span>Edit</span>
                   <Edit className="w-4 h-4" />
                 </button>
@@ -335,12 +346,13 @@ export default function BatchesPage() {
                     {filteredStudents.map((student) => (
                       <div
                         key={student.unique_id}
+                        onClick={() => {
+                          setSelectedStudent(student);
+                          setStudentModalOpen(true);
+                        }}
                         className="bg-white p-4 rounded-2xl border border-gray-200 hover:shadow-md transition-shadow"
                       >
-                        <Link
-                          to={`/admin/students/${student.id}`}
-                          className="text-decoration-none cursor-pointer"
-                        >
+                        <div className="text-decoration-none cursor-pointer">
                           <div className="flex items-center gap-4">
                             <div className="relative">
                               {student.profile_image ? (
@@ -383,7 +395,7 @@ export default function BatchesPage() {
                               </span>
                             </div>
                           </div>
-                        </Link>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -402,6 +414,22 @@ export default function BatchesPage() {
             </div>
           </div>
         </div>
+      )}
+      {editModalOpen && selectedBatch && (
+        <EditBatchModal
+          open={editModalOpen}
+          onClose={() => setEditModalOpen(false)}
+          onSuccess={fetchBatches}
+          batch={selectedBatch}
+        />
+      )}
+      {studentModalOpen && selectedStudent && (
+        <Modal
+          isOpen={studentModalOpen}
+          onClose={() => setStudentModalOpen(false)}
+        >
+          <StudentPersonalDetails studentId={selectedStudent.unique_id} />
+        </Modal>
       )}
     </div>
   );

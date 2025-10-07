@@ -64,6 +64,7 @@ export interface StudentProfile {
   is_public: boolean;
   can_access_profile: boolean;
   course: string | null;
+  course_details: Course;
   enrolled_at: string | null;
   bach_number: string | null;
   payment_completed: boolean;
@@ -78,6 +79,7 @@ export interface Course {
   id: number;
   title: string;
   sub_title?: string;
+  title_display?: string;
   description: string;
   image: string | File | null;
   tutor?: string | null;
@@ -87,7 +89,7 @@ export interface Course {
   students?: number;
   tutor_id: number | "";
   course_id: number | "";
-  tutor_name:string;
+  tutor_name: string;
   startDate?: string;
   status?: "Active" | "Upcoming" | "Completed" | "Draft";
 }
