@@ -1,6 +1,8 @@
 import { useState } from "react";
 import AddBatchModal from "@/components/ui/addBatchModal";
 import useBatches from "@/hooks/useBatch";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 import {
   PlusCircle,
   X,
@@ -16,6 +18,7 @@ import {
   GraduationCap,
   Mail,
   Edit,
+  Download,
 } from "lucide-react";
 import useStudentProfile from "@/hooks/useStudentProfile";
 import type { Tutor } from "@/api/getTutorOptions";
@@ -54,6 +57,65 @@ export default function BatchesPage() {
         b.tutor.name?.toLowerCase().includes(searchQuery.toLowerCase())) ||
       b.course_name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  console.log(filteredStudents, "filteredStudents in batches");
+  const handleGenerateReport = () => {
+    if (!filteredStudents || filteredStudents.length === 0) {
+      alert("No students to generate report for.");
+      return;
+    }
+
+    const reportData = filteredStudents.map((student, index) => {
+      // Flatten attendance
+      const attendanceSummary = student.attendance_list
+        .map(
+          (att) =>
+            `${att.date}: ${
+              att.status.charAt(0).toUpperCase() + att.status.slice(1)
+            }`
+        )
+        .join("; ");
+
+      return {
+        "S.No": index + 1,
+        "Student Name": student.name,
+        Email: student.email,
+        Phone: student.phone_number || "N/A",
+        "Course Name": student.course_name || "N/A",
+        "Batch Number": selectedBatch.batch_number,
+        "Start Date": selectedBatch.date,
+        "End Date": selectedBatch.end_date || "N/A",
+        "Start Time": selectedBatch.time_start || "N/A",
+        Status: student.is_public ? "Active" : "Inactive",
+
+        "Amount Paid": student.paid_amount || "N/A",
+        "Payment Date": student.paid_at || "N/A",
+        "Payment Status": student.payment_completed ? "Paid" : "Unpaid",
+
+        Attendance: attendanceSummary, // <-- flattened
+      };
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(reportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Batch Report");
+
+    const maxWidths = Object.keys(reportData[0]).map((key) =>
+      Math.max(
+        key.length,
+        ...reportData.map((r) => String(r[key] || "").length)
+      )
+    );
+    worksheet["!cols"] = maxWidths.map((w) => ({ wch: w + 2 }));
+
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
+    const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
+    saveAs(blob, `Batch_${selectedBatch.batch_number}_Report.xlsx`);
+  };
+
 
   const getStudentCount = (batchNumber: string) => {
     return studentProfile.filter(
@@ -269,7 +331,15 @@ export default function BatchesPage() {
                   </p>
                 </div>
               </div>
-              <div className="flex justify-end relative bottom-2">
+              <div className="flex justify-end gap-3 relative bottom-2">
+                <button
+                  className="flex items-center gap-2 px-3 py-1.5 shadow-lg backdrop-blur-md text-white rounded-lg transition-colors hover:bg-white/20"
+                  onClick={handleGenerateReport}
+                >
+                  <span>Generate Report</span>
+                  <Download className="w-4 h-4" />
+                </button>
+
                 <button
                   className="flex items-center gap-2 px-3 py-1.5 shadow-lg backdrop-blur-md text-white rounded-lg transition-colors hover:bg-white/20"
                   onClick={() => setEditModalOpen(true)}

@@ -16,12 +16,20 @@ import useCourse from "@/hooks/useCourse";
 import useStudentProfile from "@/hooks/useStudentProfile";
 import AddCourseModal from "@/components/ui/AddCourseModal";
 import { Link } from "react-router-dom";
+import AdminBatchReportPage from "./AdminBatchReport";
+import useUsers from "@/hooks/useUser";
 
 type StatusVariant = "Active" | "Completed" | "Pending";
 
 const Dashboard = () => {
   const { course } = useCourse();
   const { studentProfile } = useStudentProfile();
+  const { data } = useUsers();
+  const userId = localStorage.getItem("userId");
+  console.log(typeof userId);
+  const currentUser = data?.find((user) => user.id === Number(userId));
+  const isAdmin = currentUser?.is_superuser;
+  console.log("isAdmin", isAdmin);
   const [showModal, setShowModal] = useState(false);
   const accessibleStudentsCount = Array.isArray(studentProfile)
     ? studentProfile.filter((s: any) => s?.can_access_profile).length
@@ -185,6 +193,16 @@ const Dashboard = () => {
           </Link>
         ))}
       </div>
+
+      {isAdmin && (
+        <Card className="border-0 shadow-lg lg:col-span-3">
+          <CardHeader>
+          </CardHeader>
+          <CardContent>
+            <AdminBatchReportPage />
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Recent Students */}

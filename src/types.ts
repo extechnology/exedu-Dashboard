@@ -70,8 +70,10 @@ export interface StudentProfile {
   payment_completed: boolean;
   paid_amount: number | null;
   paid_at: string | null;
+  attendance_list: AttendanceUpdate[];
   user: number;
   progress: number;
+  is_paid: boolean;
 }
 
 
@@ -188,7 +190,8 @@ export type Status = "Present" | "Absent" | "Late";
 
 export interface AttendanceUpdate {
   student: string;
-  status: Status; 
+  status: Status;
+  marked_by_student:boolean;
   session_id: string;
   date: string;
 }

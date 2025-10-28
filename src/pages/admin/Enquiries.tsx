@@ -1,9 +1,52 @@
 import React from "react";
 import useEnquiry from "@/hooks/useEnquiry";
-
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
+import { format } from "date-fns";
 
 const Enquiries: React.FC = () => {
   const { enquiry, loading, error } = useEnquiry();
+
+  const handleGenerateReport = () => {
+      if (!enquiry.length) {
+        alert("No enquiries to export");
+        return;
+      }
+  
+      // Map enquiries to Excel rows
+      const data = enquiry.map((enquiry) => ({
+        ID: enquiry.id,
+        Name: enquiry.name,
+        Email: enquiry.email,
+        Number: enquiry.phone,
+        Course: enquiry.title,
+        "Submitted At": format(
+          new Date(enquiry.created_at),
+          "dd MMM yyyy, hh:mm a"
+        ),
+      }));
+  
+      // Create worksheet
+      const worksheet = XLSX.utils.json_to_sheet(data);
+  
+      // Create workbook and append worksheet
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Contacts");
+  
+      // Export as Excel file
+      const excelBuffer = XLSX.write(workbook, {
+        bookType: "xlsx",
+        type: "array",
+      });
+      const blob = new Blob([excelBuffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+  
+      saveAs(
+        blob,
+        `Enquiries_Report_${format(new Date(), "yyyy-MM-dd_HH-mm")}.xlsx`
+      );
+    };
 
 
   if (loading) {
@@ -16,9 +59,20 @@ const Enquiries: React.FC = () => {
   return (
     <div className="min-h-screen ">
       <div className="max-w-7xl mx-auto bg-white shadow-lg rounded-2xl p-6">
-        <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-fuchsia-500 mb-6">
-          Course Enquiries
-        </h1>
+        <div className="flex justify-between">
+          <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-fuchsia-500 mb-6">
+            Course Enquiries
+          </h1>
+          <div className="flex justify-end mb-4">
+            <button
+              title="generate report"
+              className="bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white px-4 py-2 rounded-lg hover:opacity-90"
+              onClick={handleGenerateReport}
+            >
+              Generate Report
+            </button>
+          </div>
+        </div>
 
         <div className="overflow-x-auto">
           <table className="w-full border-collapse border border-gray-200">

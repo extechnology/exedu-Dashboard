@@ -268,6 +268,10 @@ const Students = () => {
         "can_access_profile",
         String(editFormData.can_access_profile)
       );
+      formData.append(
+        "payment_completed",
+        String(editFormData.payment_completed)
+      );
 
       if (editFormData.batch) {
         formData.append("batch", String(editFormData.batch)); 

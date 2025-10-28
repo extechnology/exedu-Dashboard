@@ -24,9 +24,11 @@ export const Login = () => {
     setIsLoading(true);
     try {
       const response = await loginUser({ username, password });
+      console.log("Login response:", response);
 
       localStorage.setItem("accessToken", response.access);
       localStorage.setItem("refreshToken", response.refresh);
+      localStorage.setItem("userId", response.user_id);
 
       toast.success("Login successful!");
       navigate("/admin");

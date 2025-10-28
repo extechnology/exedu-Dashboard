@@ -36,6 +36,7 @@ export type AttendanceItem = {
   status: ApiStatus;
   attended_at: string | null;
   marked_by: number | null;
+  marked_by_student: boolean;
 };
 
 

@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Calendar as CalendarIcon,
@@ -27,12 +26,22 @@ import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import useSession from "@/hooks/useSession";
 import { format } from "date-fns";
+import axiosInstance from "@/api/axiosInstance";
 
-type Status = "Present" | "Absent" | "Late" | null;
+type Status = "Present" | "Absent" | "Late" | "Pending" | null;
+
+type ExcelRow = {
+  "Student Name": string;
+  Course: string;
+  Status: string;
+  Date: string;
+  Summary?: string;
+};
 
 const Attendance = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedSession, setSelectedSession] = useState<string | null>(null);
+const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
 
   const { studentProfile, loading, error } = useStudentProfile();
   const { course, loading: courseLoading, error: courseError } = useCourse();
@@ -46,6 +55,7 @@ const Attendance = () => {
   const courseId = selectedSessionObj?.student_details[0]?.course;
 
   const { records, saveAttendance } = useAttendance(selectedDate, courseId);
+  console.log(records, "records");
   const [statusMap, setStatusMap] = useState<Record<string, Status>>({});
 
   const accessibleStudents = useMemo(
@@ -137,6 +147,8 @@ const Attendance = () => {
         if (r.status === "present") next[String(r.student)] = "Present";
         else if (r.status === "absent") next[String(r.student)] = "Absent";
         else if (r.status === "late") next[String(r.student)] = "Late";
+        else if (r.status === "pending" && r.marked_by_student)
+          next[String(r.student)] = "Pending";
         else next[String(r.student)] = null;
       });
       setStatusMap(next);
@@ -174,9 +186,14 @@ const Attendance = () => {
         className: "bg-destructive text-destructive-foreground",
         icon: UserX,
       },
+      Pending: {
+        className: "bg-blue-500 text-white", // ✅ add this
+        icon: Clock,
+      },
     };
     return variants[status];
   };
+
 
   const bulkSet = (status: Status) => {
     setStatusMap((m) => {
@@ -194,43 +211,104 @@ const Attendance = () => {
       return;
     }
 
-    const data = filteredStudents.map((student: any) => {
-      const status = statusMap[student.unique_id] || "Not Marked";
-      return {
-        Name: student.name,
-        Course: formatCourseName(student.course),
-        Status: status,
-        Date: selectedDate.toLocaleDateString(),
-      };
-    });
+    try {
+      // Map student data to ExcelRow
+      const data: ExcelRow[] = filteredStudents.map((student: any) => {
+        const status = statusMap[student.unique_id] || "Absent"; // default
+        return {
+          "Student Name": student.name,
+          Course: student.course_name || formatCourseName(student.course),
+          Status: status,
+          Date: format(selectedDate, "dd MMM yyyy"),
+        };
+      });
 
-    data.push({
-      Name: "----",
-      Course: "Summary",
-      Status: `Present: ${stats.present}, Absent: ${stats.absent}, Late: ${stats.late}`,
-      Date: "",
-    });
+      // Add summary row
+      data.push({
+        "Student Name": "----",
+        Course: "Summary",
+        Status: "",
+        Date: "",
+        Summary: `Present: ${stats.present}, Absent: ${stats.absent}, Late: ${stats.late}`,
+      });
 
-    const worksheet = XLSX.utils.json_to_sheet(data);
+      // Create worksheet & workbook
+      const worksheet = XLSX.utils.json_to_sheet(data);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Attendance Report");
 
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Attendance Report");
+      // Export Excel file
+      const excelBuffer = XLSX.write(workbook, {
+        bookType: "xlsx",
+        type: "array",
+      });
+      const blob = new Blob([excelBuffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
 
-    // Export as Excel file
-    const excelBuffer = XLSX.write(workbook, {
-      bookType: "xlsx",
-      type: "array",
-    });
-
-    const blob = new Blob([excelBuffer], {
-      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    });
-
-    saveAs(
-      blob,
-      `Attendance_Report_${selectedDate.toISOString().split("T")[0]}.xlsx`
-    );
+      saveAs(
+        blob,
+        `Attendance_Report_${format(selectedDate, "yyyy-MM-dd")}.xlsx`
+      );
+    } catch (err) {
+      console.error("Failed to generate report:", err);
+      alert("Failed to generate report. See console for details.");
+    }
   };
+
+  const handleDownloadCourseAttendance = async () => {
+    if (!selectedCourseId) {
+      alert("Please select a course first.");
+      return;
+    }
+
+    try {
+      const response = await axiosInstance.get(
+        `/attendance/` 
+      );
+
+      const courseData = response.data;
+
+      if (!Array.isArray(courseData) || courseData.length === 0) {
+        alert("No attendance records found for this course.");
+        return;
+      }
+
+      // Prepare Excel rows
+      const data: ExcelRow[] = courseData.map((record: any) => ({
+        "Student Name": record.student_name || "Unknown",
+        Course: record.course_name || "N/A",
+        Status: record.status?.charAt(0).toUpperCase() + record.status.slice(1),
+        Date: format(new Date(record.date), "dd MMM yyyy"),
+      }));
+
+      // Create Excel
+      const worksheet = XLSX.utils.json_to_sheet(data);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Course Attendance");
+
+      const excelBuffer = XLSX.write(workbook, {
+        bookType: "xlsx",
+        type: "array",
+      });
+
+      const blob = new Blob([excelBuffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+
+      saveAs(
+        blob,
+        `Course_Attendance_${selectedCourseId}_${format(
+          new Date(),
+          "yyyy-MM-dd"
+        )}.xlsx`
+      );
+    } catch (err) {
+      console.error(err);
+      alert("Failed to download course attendance. See console for details.");
+    }
+  };
+
 
   return (
     <div className="space-y-6">
@@ -438,6 +516,7 @@ const Attendance = () => {
                           <Button
                             size="sm"
                             variant={
+                              currentStatus === "Pending" ||
                               currentStatus === "Present"
                                 ? "default"
                                 : "outline"
@@ -529,7 +608,7 @@ const Attendance = () => {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Button
               variant="outline"
-              className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-primary/5 hover:border-primary"
+              className="h-auto p-4 flex flex-col items-center gap-2 hover:text-black hover:bg-primary/5 hover:border-primary"
               onClick={() => bulkSet("Present")}
             >
               <UserCheck className="h-6 w-6 text-primary" />
@@ -537,7 +616,7 @@ const Attendance = () => {
             </Button>
             <Button
               variant="outline"
-              className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-warning/5 hover:border-warning"
+              className="h-auto p-4 flex flex-col items-center hover:text-black gap-2 hover:bg-warning/5 hover:border-warning"
               onClick={() => bulkSet("Late")}
             >
               <Clock className="h-6 w-6 text-warning" />
@@ -545,7 +624,7 @@ const Attendance = () => {
             </Button>
             <Button
               variant="outline"
-              className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-destructive/5 hover:border-destructive"
+              className="h-auto p-4 flex flex-col items-center hover:text-black gap-2 hover:bg-destructive/5 hover:border-destructive"
               onClick={() => bulkSet("Absent")}
             >
               <UserX className="h-6 w-6 text-destructive" />
@@ -553,12 +632,41 @@ const Attendance = () => {
             </Button>
             <Button
               variant="outline"
-              className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-accent/5 hover:border-accent"
+              title="Download attendance of the selected session"
+              className="h-auto p-4 flex flex-col items-center hover:text-black gap-2 hover:bg-accent/5 hover:border-accent"
               onClick={handleGenerateReport}
             >
               <Download className="h-6 w-6" />
               <span>Generate Report</span>
             </Button>
+            <div className="flex flex-col sm:flex-row gap-2 sm:col-span-2 lg:col-span-2">
+              <Select
+                value={selectedCourseId || ""}
+                onValueChange={setSelectedCourseId}
+              >
+                <SelectTrigger className="sm:w-[240px]">
+                  <SelectValue placeholder="Select Course" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.isArray(course) &&
+                    course.map((c: any) => (
+                      <SelectItem key={c.id} value={String(c.id)}>
+                        {formatCourseName(c.title)}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+
+              <Button
+                variant="outline"
+                title="Download attendance of the selected course"
+                className="flex items-center justify-center gap-2 hover:text-black h-auto p-4 hover:bg-green-50 hover:border-green-500"
+                onClick={handleDownloadCourseAttendance}
+              >
+                <Download className="h-5 w-5 text-green-600" />
+                <span>Download Course Attendance</span>
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>

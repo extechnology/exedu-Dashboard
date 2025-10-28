@@ -18,10 +18,10 @@ import useStudentProfile from "@/hooks/useStudentProfile";
 import type { Course } from "@/types";
 import AttendanceTracker from "@/components/ui/AttendanceTracker";
 
-
 interface StudentPersonalDetailsProps {
-  studentId: string; 
+  studentId?: string;
 }
+
 const StudentPersonalDetails: React.FC<StudentPersonalDetailsProps> = ({
   studentId,
 }) => {
