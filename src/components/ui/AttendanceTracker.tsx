@@ -1,39 +1,87 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import axiosInstance from "@/api/axiosInstance";
-import useStudentProfile from "@/hooks/useStudentProfile";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export type AttendanceItem = {
   id: number;
-  student: string; // UUID
+  student: string;
   student_name: string;
   student_course: number;
   date: string;
   status: "present" | "absent" | "late" | "pending";
 };
 
-
 interface AttendanceTrackerProps {
-  profileId: string; // student UUID
+  profileId: string;
   courseId: number;
   studentCreatedAt: string;
+  duration: string;
 }
 
-const AttendanceTracker = ({
+export default function AttendanceTracker({
   profileId,
   courseId,
   studentCreatedAt,
-}: AttendanceTrackerProps) => {
+  duration,
+}: AttendanceTrackerProps) {
   const [attendance, setAttendance] = useState<AttendanceItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const { studentProfile } = useStudentProfile();
 
-  console.log(profileId, "profileId in attendance tracker");
-  const selectedStudent = studentProfile?.find(
-    (s) => s.unique_id === profileId || s.unique_id === profileId
-  );
-  console.log(selectedStudent, "selectedStudent in attendance tracker");
+  const initialMonth = useMemo(() => {
+    const now = new Date();
+    if (now < new Date(studentCreatedAt)) {
+      return new Date(studentCreatedAt);
+    }
+
+    const end = new Date(studentCreatedAt);
+    const durationMatch = duration.match(/(\d+)\s*(week|month)/i);
+    if (durationMatch) {
+      const value = parseInt(durationMatch[1], 10);
+      const unit = durationMatch[2].toLowerCase();
+
+      if (unit.startsWith("week")) {
+        end.setDate(end.getDate() + value * 7);
+      } else if (unit.startsWith("month")) {
+        end.setMonth(end.getMonth() + value);
+      }
+    } else {
+      end.setMonth(end.getMonth() + 3);
+    }
+
+    if (now > end) {
+      // After course end → show last valid month
+      return end;
+    }
+
+    // Within range → show current month
+    return now;
+  }, [studentCreatedAt, duration]);
+
+  const [currentMonth, setCurrentMonth] = useState<Date>(initialMonth);
+
+  const { startDate, endDate } = useMemo(() => {
+    const start = new Date(studentCreatedAt);
+    const end = new Date(start);
+    const durationMatch = duration.match(/(\d+)\s*(week|month)/i);
+
+    if (durationMatch) {
+      const value = parseInt(durationMatch[1], 10);
+      const unit = durationMatch[2].toLowerCase();
+
+      if (unit.startsWith("week")) {
+        end.setDate(end.getDate() + value * 7);
+      } else if (unit.startsWith("month")) {
+        end.setMonth(end.getMonth() + value);
+      }
+    } else {
+      // fallback 3 months
+      end.setMonth(end.getMonth() + 3);
+    }
+
+    return { startDate: start, endDate: end };
+  }, [studentCreatedAt, duration]);
 
   useEffect(() => {
     const fetchAttendance = async () => {
@@ -41,7 +89,13 @@ const AttendanceTracker = ({
         const res = await axiosInstance.get("/attendance/", {
           params: { course: courseId, student: profileId },
         });
-        setAttendance(res.data as AttendanceItem[]);
+
+        const filtered = (res.data as AttendanceItem[]).filter((att) => {
+          const attDate = new Date(att.date);
+          return attDate >= startDate && attDate <= endDate;
+        });
+
+        setAttendance(filtered);
       } catch (err) {
         console.error("Failed to fetch attendance", err);
       } finally {
@@ -50,134 +104,156 @@ const AttendanceTracker = ({
     };
 
     fetchAttendance();
-  }, [courseId, profileId]);
+  }, [courseId, profileId, startDate, endDate]);
 
   if (loading) return <p>Loading attendance...</p>;
 
-  // map attendance by date
-  const attendanceMap: Record<string, "Present" | "Absent"> = {};
+  // 🧩 Quick lookup map
+  const attendanceMap: Record<string, AttendanceItem> = {};
   attendance.forEach((rec) => {
-    attendanceMap[rec.date] =
-      rec.status === "present" || rec.status === "pending"
-        ? "Present"
-        : "Absent";
+    attendanceMap[rec.date] = rec;
   });
 
-  // generate date grid
- const startDate = new Date(selectedStudent?.created_at);
- const durationStr = selectedStudent?.course_details?.duration || "3 months"; // fallback
- const allDates: Date[] = [];
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const daysInMonth = lastDay.getDate();
+  const startDay = firstDay.getDay();
+  const offset = (startDay + 6) % 7; 
 
- // Parse duration string
- let endDate = new Date(startDate);
- const durationMatch = durationStr.match(/(\d+)\s*(week|month)/i);
- if (durationMatch) {
-   const value = parseInt(durationMatch[1], 10);
-   const unit = durationMatch[2].toLowerCase();
+  const calendarDays: (Date | null)[] = [];
+  for (let i = 0; i < offset; i++) calendarDays.push(null);
+  for (let i = 1; i <= daysInMonth; i++) {
+    const dateObj = new Date(year, month, i);
+    if (dateObj >= startDate && dateObj <= endDate) {
+      calendarDays.push(dateObj);
+    } else {
+      calendarDays.push(null);
+    }
+  }
 
-   if (unit.startsWith("week")) {
-     endDate.setDate(endDate.getDate() + value * 7);
-   } else if (unit.startsWith("month")) {
-     endDate.setMonth(endDate.getMonth() + value);
-   }
- } else {
-   // fallback to 3 months if parsing fails
-   endDate.setMonth(endDate.getMonth() + 3);
- }
+  // 🎨 Color logic
+  const getStatusColor = (status?: string) => {
+    switch (status) {
+      case "present":
+        return "bg-green-500 text-white";
+      case "absent":
+        return "bg-red-400 text-white";
+      case "late":
+        return "bg-yellow-400 text-white";
+      case "pending":
+        return "bg-blue-400 text-white";
+      default:
+        return "bg-gray-200 text-gray-600";
+    }
+  };
 
- // Generate all dates between startDate and endDate
- const current = new Date(startDate);
- while (current <= endDate) {
-   allDates.push(new Date(current));
-   current.setDate(current.getDate() + 1);
- }
+  const formatDate = (date: Date) => date.toISOString().split("T")[0];
 
- // Split into weeks
- const weeks: {
-   weekStart: Date;
-   days: { date: Date; status: "Present" | "Absent" }[];
- }[] = [];
- let currentWeek: any[] = [];
- let weekStart = allDates[0];
+  // ⏮ / ⏭ Month navigation with boundary restriction
+  const prevMonth = () => {
+    const newMonth = new Date(currentMonth);
+    newMonth.setMonth(currentMonth.getMonth() - 1);
+    if (newMonth >= startDate) setCurrentMonth(newMonth);
+  };
 
- allDates.forEach((date) => {
-   const iso = date.toISOString().split("T")[0];
-   currentWeek.push({ date, status: attendanceMap[iso] || "Absent" });
+  const nextMonth = () => {
+    const newMonth = new Date(currentMonth);
+    newMonth.setMonth(currentMonth.getMonth() + 1);
+    if (newMonth <= endDate) setCurrentMonth(newMonth);
+  };
 
-   if (date.getDay() === 6) {
-     weeks.push({ weekStart, days: currentWeek });
-     currentWeek = [];
-     weekStart = new Date(date);
-     weekStart.setDate(weekStart.getDate() + 1);
-   }
- });
+  const disablePrev = currentMonth <= startDate;
+  const disableNext = currentMonth >= endDate;
 
- if (currentWeek.length > 0) weeks.push({ weekStart, days: currentWeek });
-
-
+  // 📅 UI
   return (
-    <div className="bg-white p-4 rounded-2xl shadow-lg max-w-full sm:max-w-lg mx-auto">
-      {/* Legend */}
-      <div className="flex flex-wrap justify-end gap-4 mb-2">
-        <div className="flex items-center gap-2">
-          <div className="w-5 h-5 rounded-md bg-gray-300"></div>
-          <span className="text-sm">Absent</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-5 h-5 rounded-md bg-green-500"></div>
-          <span className="text-sm">Present</span>
-        </div>
+    <div className="bg-white p-6 rounded-2xl shadow-md w-full max-w-4xl mx-auto">
+      {/* Header */}
+      
+      <div className="flex justify-between items-center mb-4">
+        <button
+          title="Previous Month"
+          onClick={prevMonth}
+          disabled={disablePrev}
+          className={`p-2 rounded-lg transition ${
+            disablePrev ? "opacity-30 cursor-not-allowed" : "hover:bg-gray-100"
+          }`}
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+
+        <h2 className="text-lg font-semibold text-gray-800">
+          {currentMonth.toLocaleString("default", {
+            month: "long",
+            year: "numeric",
+          })}
+        </h2>
+
+        <button
+          title="Next Month"
+          onClick={nextMonth}
+          disabled={disableNext}
+          className={`p-2 rounded-lg transition ${
+            disableNext ? "opacity-30 cursor-not-allowed" : "hover:bg-gray-100"
+          }`}
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
       </div>
 
-      {/* Month labels */}
-      <div className="flex space-x-1 mb-2 relative left-14">
-        {weeks.map((week, idx) => {
-          const month = week.weekStart.toLocaleString("default", {
-            month: "short",
-          });
-          const prevMonth =
-            idx > 0
-              ? weeks[idx - 1].weekStart.toLocaleString("default", {
-                  month: "short",
-                })
-              : null;
+      {/* Weekday labels */}
+      <div className="grid grid-cols-7 gap-1 text-center text-sm font-medium text-gray-500 mb-1">
+        {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
+          <div key={day} className="py-2">
+            {day}
+          </div>
+        ))}
+      </div>
+
+      {/* Calendar */}
+      <div className="grid grid-cols-7 gap-1 text-center">
+        {calendarDays.map((date, idx) => {
+          if (!date) return <div key={idx} className="bg-transparent"></div>;
+
+          const isoDate = formatDate(date);
+          const record = attendanceMap[isoDate];
+          const status = record?.status;
+
           return (
-            <div key={idx} className="w-6 text-xs text-center">
-              {month !== prevMonth ? month : ""}
+            <div
+              key={idx}
+              className={`p-2 flex flex-col items-center justify-between rounded-md border transition hover:shadow-sm ${getStatusColor(
+                status
+              )}`}
+              title={`${date.toDateString()} - ${
+                status
+                  ? status.charAt(0).toUpperCase() + status.slice(1)
+                  : "No Record"
+              }`}
+            >
+              <span className="text-sm font-semibold">{date.getDate()}</span>
             </div>
           );
         })}
       </div>
 
-      <div className="flex overflow-x-auto">
-        {/* Day labels */}
-        <div className="flex flex-col items-center justify-center gap-1 pr-2 text-xs text-gray-500">
-          {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
-            <div key={d} className="h-6">
-              {d}
-            </div>
-          ))}
+      {/* Legend */}
+      <div className="flex justify-center gap-4 mt-5 text-sm">
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 bg-green-500 rounded-sm"></div> Present
         </div>
-
-        {/* Grid */}
-        <div className="flex space-x-1">
-          {weeks.map((week, wi) => (
-            <div key={wi} className="flex flex-col space-y-1">
-              {week.days.map((day, di) => (
-                <div
-                  key={di}
-                  className={`w-6 h-6 rounded-sm ${
-                    day.status === "Present" ? "bg-green-500" : "bg-gray-300"
-                  }`}
-                  title={day.date.toDateString()}
-                />
-              ))}
-            </div>
-          ))}
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 bg-red-400 rounded-sm"></div> Absent
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 bg-yellow-400 rounded-sm"></div> Late
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 bg-blue-400 rounded-sm"></div> Pending
         </div>
       </div>
     </div>
   );
-};
-
-export default AttendanceTracker;
+}

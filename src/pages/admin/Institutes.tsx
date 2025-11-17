@@ -1,85 +1,41 @@
+
 import axiosInstance from "@/api/axiosInstance";
 import { motion, AnimatePresence } from "framer-motion";
-import { PlusCircle, Mail, Phone, User, X, Edit } from "lucide-react";
+import { PlusCircle, Mail, Phone, User, X,Edit } from "lucide-react";
 import EditTutorModal from "@/components/ui/EditTutorModal";
 import { useEffect, useState } from "react";
-import TutorAttendanceModal from "@/components/ui/TutorAttendance";
-import useSession from "@/hooks/useSession";
-import { useTutorAttendance } from "@/hooks/useTutorAttendance";
-import useTutorData from "@/hooks/useTutorDatas";
-import TutorAttendanceCalendarView from "@/components/ui/TutorAttendanceCalenderView";
+import useRegion from "@/hooks/useRegion";
+import type { Region } from "@/types";
+import { format } from "date-fns";
+import EditRegionModal from "@/components/ui/editInstituteModal";
 
-interface Tutor {
-  id: number;
-  name: string;
-  email?: string;
-  phone_number?: string;
-  image?: string;
-  region?: number;
-  region_name: string;
-}
 
-const TutorPage: React.FC = ({ tutorId }: { tutorId: number }) => {
-  const [tutors, setTutors] = useState<Tutor[]>([]);
+const InstitutePage: React.FC = () => {
+  const [institutes, setInstitutes] = useState<Region[]>([]);
   const [open, setOpen] = useState(false);
-  const [openModal, setOpenModal] = useState(false);
+  const { region:Regions, loading: regionLoading, error: regionError } = useRegion();
   const [loading, setLoading] = useState(false);
-  const [selectedTutor, setSelectedTutor] = useState<Tutor | null>(null);
-  
-  const {
-    tutorAttendance,
-    loading: attendanceDataLoading,
-    refetchAttendance,
-  } = useTutorData(selectedTutor?.id);
-  console.log(tutorAttendance, "tutor attendance");
+  const [selectedRegion, setSelectedRegion] = useState<Region | null>(null);
   const [editOpen, setEditOpen] = useState(false);
-  const region = localStorage.getItem("region");
-  console.log(region, "region");
-  const { session } = useSession();
-  console.log(session, "session");
-  console.log(tutors, "tutors");
-  console.log(tutorAttendance, "tutor attendance in tutor page");
-  const regionId = localStorage.getItem("region_id");
+  const region = localStorage.getItem('region')
+  const regionId = localStorage.getItem('region_id')
   const [formData, setFormData] = useState<{
-    name: string;
-    email: string;
-    phone_number: string;
+    phone: string;
     image: File | null;
-    region: number;
+    region:number;
   }>({
-    name: "",
-    email: "",
-    phone_number: "",
+    phone: "",
     image: null,
-    region: Number(regionId),
+    region:Number(regionId)
   });
-  const {
-    markAttendance,
-    loading: attendanceLoading,
-    error,
-  } = useTutorAttendance();
-  const tutorsByRegion = tutors.filter((tutor) => tutor.region_name === region);
-  console.log(tutorsByRegion, "tutors by region");
-  const sessionByRegion = session.filter((s) => s.region_name === region);
-  console.log("🧩 TutorPage tutorId:", tutorId);
 
-  const handleTutorUpdated = (updatedTutor: Tutor) => {
-    setTutors((prev) =>
-      prev.map((t) => (t.id === updatedTutor.id ? updatedTutor : t))
+
+  const handleInstituteUpdated = (updatedRegion: Region) => {
+    setInstitutes((prev) =>
+      prev.map((t) => (t.id === updatedRegion.id ? updatedRegion : t))
     );
   };
-  const fetchTutors = async () => {
-    try {
-      const res = await axiosInstance.get<Tutor[]>("/tutor/");
-      setTutors(res.data);
-    } catch (err) {
-      console.error("Failed to fetch tutors:", err);
-    }
-  };
-
-  useEffect(() => {
-    fetchTutors();
-  }, []);
+  
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -97,26 +53,18 @@ const TutorPage: React.FC = ({ tutorId }: { tutorId: number }) => {
 
     try {
       const formDataToSend = new FormData();
-      formDataToSend.append("name", formData.name);
-      formDataToSend.append("email", formData.email);
-      formDataToSend.append("phone_number", formData.phone_number);
+      formDataToSend.append("phone", formData.phone);
       formDataToSend.append("region", String(formData.region));
       if (formData.image) {
         formDataToSend.append("image", formData.image);
       }
 
-      const res = await axiosInstance.post<Tutor>("/tutor/", formDataToSend, {
+      const res = await axiosInstance.post<Region>("/region/", formDataToSend, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      setTutors([...tutors, res.data]);
-      setFormData({
-        name: "",
-        email: "",
-        phone_number: "",
-        image: null,
-        region: Number(regionId),
-      });
+      setInstitutes([...institutes, res.data]);
+      setFormData({ phone: "", image: null ,region:Number(regionId)}); 
       setOpen(false);
     } catch (err) {
       console.error("Failed to add tutor:", err);
@@ -132,9 +80,9 @@ const TutorPage: React.FC = ({ tutorId }: { tutorId: number }) => {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-10">
           <div>
             <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-fuchsia-500">
-              Tutors
+              Institutes
             </h1>
-            <p className="text-slate-600 mt-2">Manage your tutoring team</p>
+            <p className="text-slate-600 mt-2">Manage your Institutes here</p>
           </div>
           <motion.button
             onClick={() => setOpen(true)}
@@ -145,7 +93,7 @@ const TutorPage: React.FC = ({ tutorId }: { tutorId: number }) => {
             <div className="p-2 text-white group-hover:shadow-lg transition-all duration-200">
               <PlusCircle size={20} />
             </div>
-            <span className="font-semibold text-white">Add New Tutor</span>
+            <span className="font-semibold text-white">Add New Institute</span>
           </motion.button>
         </div>
 
@@ -157,9 +105,9 @@ const TutorPage: React.FC = ({ tutorId }: { tutorId: number }) => {
                 <User size={24} />
               </div>
               <div>
-                <p className="text-sm text-slate-600">Total Tutors</p>
+                <p className="text-sm text-slate-600">Total Institutes</p>
                 <p className="text-2xl font-bold text-slate-800">
-                  {tutorsByRegion.length}
+                  {Regions.length}
                 </p>
               </div>
             </div>
@@ -168,9 +116,9 @@ const TutorPage: React.FC = ({ tutorId }: { tutorId: number }) => {
 
         {/* Tutors Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {tutorsByRegion.map((tutor, index) => (
+          {Regions.map((region, index) => (
             <motion.div
-              key={tutor.id}
+              key={region.id}
               className="group relative bg-white/80 backdrop-blur-sm rounded-3xl p-6 border border-white/40 shadow-sm hover:shadow-xl hover:bg-white transition-all duration-300"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -179,11 +127,11 @@ const TutorPage: React.FC = ({ tutorId }: { tutorId: number }) => {
             >
               <div
                 className="pt-4 absolute right-5 top-3 flex justify-center"
-                title="Edit Tutor"
+                title="Edit region"
               >
                 <div
                   onClick={() => {
-                    setSelectedTutor(tutor);
+                    setSelectedRegion(region);
                     setEditOpen(true);
                   }}
                 >
@@ -192,50 +140,38 @@ const TutorPage: React.FC = ({ tutorId }: { tutorId: number }) => {
               </div>
 
               {/* Avatar */}
-              <div
-                onClick={() => {
-                  setSelectedTutor(tutor);
-                  setOpenModal(true);
-                }}
-                className="flex justify-center mb-4 cursor-pointer"
-              >
-                {tutor.image ? (
+              <div className="flex justify-center mb-4">
+                {region.image ? (
                   <img
-                    src={tutor.image}
-                    alt={tutor.name}
+                    src={region.image}
+                    alt={region.region}
                     className="w-16 h-16 object-cover rounded-2xl"
                   />
                 ) : (
                   <div className="w-16 h-16 bg-gradient-to-br from-indigo-400 to-purple-500 rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-lg">
-                    {tutor.name.charAt(0).toUpperCase()}
+                    {region.region.charAt(0).toUpperCase()}
                   </div>
                 )}
               </div>
 
-              {/* Tutor Info */}
-              <div
-                onClick={() => {
-                  setSelectedTutor(tutor);
-                  setOpenModal(true);
-                }}
-                className="text-center space-y-3 cursor-pointer"
-              >
+              {/* region Info */}
+              <div className="text-center space-y-3">
                 <h3 className="text-xl font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">
-                  {tutor.name}
+                  {region.region || "No email provided"}
+                </h3>
+                <h3 className="text-sm font-medium text-slate-600 group-hover:text-indigo-600 transition-colors">
+                  {region.phone || "No Phone provided"}
                 </h3>
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-center gap-2 text-slate-600">
                     <Mail size={16} className="text-slate-400" />
                     <span className="text-sm truncate max-w-[180px]">
-                      {tutor.email || "No email provided"}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-center gap-2 text-slate-600">
-                    <Phone size={16} className="text-slate-400" />
-                    <span className="text-sm">
-                      {tutor.phone_number || "No phone provided"}
+                      {region.created_at &&
+                        format(
+                          new Date(region.created_at),
+                          "dd MMM yyyy, hh:mm a"
+                        )}
                     </span>
                   </div>
                 </div>
@@ -247,10 +183,8 @@ const TutorPage: React.FC = ({ tutorId }: { tutorId: number }) => {
           ))}
         </div>
 
-        <TutorAttendanceModal sessions={sessionByRegion} />
-
         {/* Empty State */}
-        {tutors.length === 0 && (
+        {Regions.length === 0 && (
           <motion.div
             className="text-center py-20"
             initial={{ opacity: 0 }}
@@ -260,17 +194,17 @@ const TutorPage: React.FC = ({ tutorId }: { tutorId: number }) => {
               <User size={32} className="text-indigo-400" />
             </div>
             <h3 className="text-xl font-semibold text-slate-700 mb-2">
-              No tutors yet
+              No Institutes yet
             </h3>
             <p className="text-slate-500 mb-6">
-              Get started by adding your first tutor
+              Get started by adding your first Institute
             </p>
             <button
               onClick={() => setOpen(true)}
               className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-2xl font-medium hover:shadow-lg transition-all duration-200"
             >
               <PlusCircle size={20} />
-              Add First Tutor
+              Add First Institute
             </button>
           </motion.div>
         )}
@@ -295,7 +229,7 @@ const TutorPage: React.FC = ({ tutorId }: { tutorId: number }) => {
               {/* Modal Header */}
               <div className="bg-gradient-to-r from-indigo-500 to-purple-500 px-6 py-4 text-white">
                 <div className="flex justify-between items-center">
-                  <h2 className="text-2xl font-bold">Add New Tutor</h2>
+                  <h2 className="text-2xl font-bold">Add New Institute</h2>
                   <button
                     type="button"
                     title="Close Modal"
@@ -316,34 +250,9 @@ const TutorPage: React.FC = ({ tutorId }: { tutorId: number }) => {
                     </label>
                     <input
                       type="text"
-                      placeholder={region}
-                      className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-indigo-400 focus:outline-none transition-colors bg-slate-50 focus:bg-white"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium text-slate-700">
-                      Full Name *
-                    </label>
-                    <input
-                      type="text"
-                      name="name"
-                      placeholder="Enter tutor's full name"
-                      value={formData.name}
-                      onChange={handleChange}
-                      required
-                      className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-indigo-400 focus:outline-none transition-colors bg-slate-50 focus:bg-white"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium text-slate-700">
-                      Email Address
-                    </label>
-                    <input
-                      type="email"
-                      name="email"
-                      placeholder="tutor@example.com"
-                      value={formData.email}
+                      name="region"
+                      placeholder="Enter the Institute Place"
+                      value={formData.region}
                       onChange={handleChange}
                       className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-indigo-400 focus:outline-none transition-colors bg-slate-50 focus:bg-white"
                     />
@@ -355,9 +264,10 @@ const TutorPage: React.FC = ({ tutorId }: { tutorId: number }) => {
                     </label>
                     <input
                       type="text"
-                      name="phone_number"
-                      placeholder="+91 98765 43210"
-                      value={formData.phone_number}
+                      name="phone"
+                      maxLength={10}
+                      placeholder="98765 43210"
+                      value={formData.phone}
                       onChange={handleChange}
                       className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-indigo-400 focus:outline-none transition-colors bg-slate-50 focus:bg-white"
                     />
@@ -392,7 +302,7 @@ const TutorPage: React.FC = ({ tutorId }: { tutorId: number }) => {
                       disabled={loading}
                       className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg transition-all duration-200"
                     >
-                      {loading ? "Adding..." : "Add Tutor"}
+                      {loading ? "Adding..." : "Add Institute"}
                     </button>
                   </div>
                 </form>
@@ -401,22 +311,14 @@ const TutorPage: React.FC = ({ tutorId }: { tutorId: number }) => {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {openModal && (
-        <TutorAttendanceCalendarView
-          tutor={selectedTutor}
-          onClose={() => setOpenModal(false)}
-        />
-      )}
-
-      <EditTutorModal
+      <EditRegionModal
         open={editOpen}
         onClose={() => setEditOpen(false)}
-        tutor={selectedTutor}
-        onTutorUpdated={handleTutorUpdated}
+        region={selectedRegion}
+        onRegionUpdated={handleInstituteUpdated}
       />
     </div>
   );
 };
 
-export default TutorPage;
+export default InstitutePage;

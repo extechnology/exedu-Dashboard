@@ -12,7 +12,8 @@ export type AttendanceRecord = {
   student: number; // local student id (for dropdowns, UI, etc.)
   student_name?: string;
   student_course: number;
-  status: UIStatus; // for UI
+  status: UIStatus; 
+  region: number;
   date: string;
 };
 
@@ -24,6 +25,7 @@ export type AttendanceUpdate = {
 export type BulkAttendancePayload = {
   date: string;
   course: number;
+  region: number;
   records: AttendanceUpdate[];
 };
 
@@ -37,6 +39,7 @@ export type AttendanceItem = {
   attended_at: string | null;
   marked_by: number | null;
   marked_by_student: boolean;
+  region:number;
 };
 
 
@@ -44,6 +47,7 @@ export default function useAttendance(date: Date, courseId?: number) {
   const [records, setRecords] = useState<AttendanceItem[]>([]); 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const regionId = localStorage.getItem("region_id")
 
   const formattedDate = date.toISOString().split("T")[0];
 
@@ -71,6 +75,7 @@ export default function useAttendance(date: Date, courseId?: number) {
         date: formattedDate,
         course: courseId,
         records: updates,
+        region: Number(regionId),
       });
 
       setRecords(res.data.records as AttendanceItem[]);

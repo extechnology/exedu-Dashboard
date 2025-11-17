@@ -9,7 +9,6 @@ import { toast } from "sonner";
 import { Session } from "@/types";
 import useCourseOptions from "@/hooks/useCourseOptions";
 
-
 interface SessionModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -22,9 +21,9 @@ export default function SessionModal({
   onSave,
 }: SessionModalProps) {
   const [title, setTitle] = useState("");
-  const {courseOptions} = useCourseOptions();
+  const { courseOptions } = useCourseOptions();
   const [dateTime, setDateTime] = useState<Date | null>(new Date());
-  const [duration, setDuration] = useState<number>(60); 
+  const [duration, setDuration] = useState<number>(60);
   const [selectedTutor, setSelectedTutor] = useState<any>(null);
   const [selectedStudents, setSelectedStudents] = useState<any[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<any>(null);
@@ -32,17 +31,19 @@ export default function SessionModal({
   const { studentProfile: students } = useStudentProfile();
   const [showTutorModal, setShowTutorModal] = useState(false);
   const [showStudentModal, setShowStudentModal] = useState(false);
+  const region = localStorage.getItem("region");
+  const regionId = localStorage.getItem("region_id");
 
-  
   const handleSave = async () => {
     try {
       const payload = {
         title,
-        course : selectedCourse?.id || null,
+        course: selectedCourse?.id || null,
         start_time: dateTime?.toISOString(),
         duration: `PT${duration}M`,
         tutor: selectedTutor?.id || null,
         students: selectedStudents.map((s) => s.unique_id),
+        region: Number(regionId),
       };
 
       const res = await axiosInstance.post("/session/", payload);
@@ -83,6 +84,12 @@ export default function SessionModal({
             </button>
           </div>
 
+          <input
+            type="text"
+            placeholder={region}
+            disabled
+            className="w-full border rounded-lg px-3 py-2 mb-4"
+          />
           <input
             type="text"
             placeholder="Session Title"

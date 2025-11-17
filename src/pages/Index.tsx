@@ -17,8 +17,11 @@ import {
   Target,
   TrendingUp,
 } from "lucide-react";
+import useRegion from "@/hooks/useRegion";
 
 const Index = () => {
+  const {region} = useRegion();
+  console.log(region,"region")
   const features = [
     {
       icon: Users,

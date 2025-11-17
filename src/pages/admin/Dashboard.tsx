@@ -25,6 +25,9 @@ const Dashboard = () => {
   const { course } = useCourse();
   const { studentProfile } = useStudentProfile();
   const { data } = useUsers();
+  const Region = localStorage.getItem("region");
+  console.log(studentProfile, "studentprofile");
+  console.log(course, "course details");
   const userId = localStorage.getItem("userId");
   console.log(typeof userId);
   const currentUser = data?.find((user) => user.id === Number(userId));
@@ -32,20 +35,22 @@ const Dashboard = () => {
   console.log("isAdmin", isAdmin);
   const [showModal, setShowModal] = useState(false);
   const accessibleStudentsCount = Array.isArray(studentProfile)
-    ? studentProfile.filter((s: any) => s?.can_access_profile).length
+    ? studentProfile.filter(
+        (s: any) => s?.can_access_profile && s?.region_name === Region
+      ).length
     : 0;
-
+  console.log("accessibleStudentsCount", accessibleStudentsCount);
   const totalStudentsCount = Array.isArray(studentProfile)
-    ? studentProfile.length
+    ? studentProfile.filter((s: any) => s?.region_name === Region).length
     : 0;
 
-  const totalCourses = Array.isArray(course) ? course.length : 0;
+  const totalCourses = Array.isArray(course) ? course.filter((s: any) => s?.region_name === Region).length : 0;
 
   const [showAll, setShowAll] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const studentsPerPage = 5;
 
-  const allStudents = Array.isArray(studentProfile) ? studentProfile : [];
+  const allStudents = Array.isArray(studentProfile) ? studentProfile.filter((s: any) => s?.region_name === Region) : [];
 
   const paginatedStudents = showAll
     ? allStudents.slice(
@@ -196,8 +201,7 @@ const Dashboard = () => {
 
       {isAdmin && (
         <Card className="border-0 shadow-lg lg:col-span-3">
-          <CardHeader>
-          </CardHeader>
+          <CardHeader></CardHeader>
           <CardContent>
             <AdminBatchReportPage />
           </CardContent>

@@ -8,36 +8,6 @@ export interface LoginResponse {
   refresh: string;
 }
 
-// export interface StudentProfile {
-//   unique_id: string;
-//   name: string;
-//   email: string;
-//   phone_number: string;
-//   user: number;
-//   id: number;
-//   title: string;
-//   course_name: string;
-//   secondary_school: string;
-//   secondary_year: string;
-//   university: string;
-//   university_year: string;
-//   university_major: string;
-//   course: string;
-//   enrolled_at: string;
-//   batch_number: string;
-//   payment_completed: boolean;
-//   paid_amount: number;
-//   paid_at: string;
-//   can_access_profile: boolean;
-//   is_public: boolean;
-//   created_at: string;
-//   interests: string;
-//   experience: string;
-//   skills: string;
-//   career_objective: string;
-//   profile_image: string;
-//   batch: number;
-// }
 
 
 export interface StudentProfile {
@@ -56,6 +26,7 @@ export interface StudentProfile {
   university_year: string | null;
   career_objective: string;
   skills: string;
+  region?: string;
   experience: string;
   course_name: string | null;
   interests: string;
@@ -74,6 +45,7 @@ export interface StudentProfile {
   user: number;
   progress: number;
   is_paid: boolean;
+  region_name: string | null;
 }
 
 
@@ -87,6 +59,8 @@ export interface Course {
   tutor?: string | null;
   instructor?: string;
   price?: string;
+  region?: number;
+  region_name: string | null;
   duration?: string;
   students?: number;
   tutor_id: number | "";
@@ -133,15 +107,18 @@ export interface CourseOptions {
   value: string;
   label: string;
   title: string;
+  region_name: string;
 }
 
 
-export interface Tutor  {
+export interface Tutor {
   id: number;
   name: string;
-  email: string;
-  phone_number: string;
-  profile_image:string;
+  region?: number;
+  region_name?: string;
+  email?: string;
+  phone_number?: string;
+  profile_image?: string;
 };
 
 export interface Batch {
@@ -150,15 +127,19 @@ export interface Batch {
   course: number;
   tutor: Tutor;
   date: string;
+  region?: string;
   time_start: string;
   end_date: string;
   course_name: string;
+  created_at: string;
+  region_name: string;
 }
 
 
 type TutorDetails = {
   id: number;
   name?: string;
+  region?: string;  
   profile_image?: string | File | null;
 } | null; 
 
@@ -176,14 +157,16 @@ export interface Session {
   id: number;
   start_time: string;
   duration: string;
-  course_details:Course;
+  course_details: Course;
   students: StudentProfile[];
   student_details: StudentDetails;
   tutor_details: TutorDetails;
   tutor: Tutor;
-  course:number;
+  region?: string;
+  course: number;
   course_id: number;
   created_at: string;
+  region_name: string;
 }
 
 export type Status = "Present" | "Absent" | "Late";
@@ -194,4 +177,22 @@ export interface AttendanceUpdate {
   marked_by_student:boolean;
   session_id: string;
   date: string;
+  region?: string
+}
+
+export interface Region {
+  region: string;
+  image: string;
+  created_at: string;
+  phone: string;
+  id: number;
+}
+
+
+export interface TutorAttendance {
+  id: number;
+  tutor: number;
+  session: number;
+  date: string;
+  status: "present" | "absent";
 }

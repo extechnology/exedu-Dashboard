@@ -3,41 +3,40 @@ import { X } from "lucide-react";
 import { useState, useEffect } from "react";
 import axiosInstance from "@/api/axiosInstance";
 import { toast } from "sonner";
-import type { Tutor } from "@/types";
+import type { Region } from "@/types";
 
-interface EditTutorModalProps {
+interface EditRegionModalProps {
   open: boolean;
   onClose: () => void;
-  tutor: Tutor | null;
-  onTutorUpdated: (updatedTutor: Tutor) => void;
+  region: Region | null;
+  onRegionUpdated: (updatedRegion: Region) => void;
 }
 
 
-const EditTutorModal = ({
+const EditRegionModal = ({
   open,
   onClose,
-  tutor,
-  onTutorUpdated,
-}: EditTutorModalProps) => {
+  region,
+  onRegionUpdated,
+}: EditRegionModalProps) => {
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone_number: "",
+    region: "",
+    phone: "",
     image: null as File | null,
   });
 
   const [loading, setLoading] = useState(false);
 
+  // Prefill data when modal opens
   useEffect(() => {
-    if (tutor) {
+    if (region) {
       setFormData({
-        name: tutor.name || "",
-        email: tutor.email || "",
-        phone_number: tutor.phone_number || "",
+        region: region.region || "",
+        phone: region.phone || "",
         image: null,
       });
     }
-  }, [tutor]);
+  }, [region]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -52,28 +51,27 @@ const EditTutorModal = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!tutor) return;
+    if (!region) return;
 
     setLoading(true);
     try {
       const formDataToSend = new FormData();
-      formDataToSend.append("name", formData.name);
-      formDataToSend.append("email", formData.email);
-      formDataToSend.append("phone_number", formData.phone_number);
+      formDataToSend.append("region", formData.region);
+      formDataToSend.append("phone", formData.phone);
       if (formData.image) formDataToSend.append("image", formData.image);
 
-      const res = await axiosInstance.patch<Tutor>(
-        `/tutor/${tutor.id}/`,
+      const res = await axiosInstance.patch<Region>(
+        `/region/${region.id}/`,
         formDataToSend,
         { headers: { "Content-Type": "multipart/form-data" } }
       );
 
-      toast.success("Tutor updated successfully");
-      onTutorUpdated(res.data);
+      toast.success("Institute updated successfully");
+      onRegionUpdated(res.data);
       onClose();
     } catch (error) {
-      console.error("Error updating tutor:", error);
-      toast.error("Failed to update tutor. Please try again.");
+      console.error("Error updating Institute:", error);
+      toast.error("Failed to update Institute. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -98,7 +96,7 @@ const EditTutorModal = ({
             {/* Header */}
             <div className="bg-gradient-to-r from-indigo-500 to-purple-500 px-6 py-4 text-white">
               <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold">Edit Tutor</h2>
+                <h2 className="text-2xl font-bold">Edit Institute</h2>
                 <button
                 title="Close"
                   type="button"
@@ -120,27 +118,14 @@ const EditTutorModal = ({
                   <input
                     placeholder="John Doe"
                     type="text"
-                    name="name"
-                    value={formData.name}
+                    name="region"
+                    value={formData.region}
                     onChange={handleChange}
                     required
                     className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-indigo-400 focus:outline-none transition-colors bg-slate-50 focus:bg-white"
                   />
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-sm font-medium text-slate-700">
-                    Email
-                  </label>
-                  <input
-                    placeholder="1oGdZ@example.com"
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-indigo-400 focus:outline-none transition-colors bg-slate-50 focus:bg-white"
-                  />
-                </div>
 
                 <div className="space-y-1">
                   <label className="text-sm font-medium text-slate-700">
@@ -149,8 +134,8 @@ const EditTutorModal = ({
                   <input
                     placeholder="+91 98765 43210"
                     type="text"
-                    name="phone_number"
-                    value={formData.phone_number}
+                    name="phone"
+                    value={formData.phone}
                     onChange={handleChange}
                     className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-indigo-400 focus:outline-none transition-colors bg-slate-50 focus:bg-white"
                   />
@@ -194,4 +179,4 @@ const EditTutorModal = ({
   );
 };
 
-export default EditTutorModal;
+export default EditRegionModal;

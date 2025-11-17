@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo, useState } from "react";
 import {
   User,
   Mail,
@@ -17,18 +17,103 @@ import {
 import useStudentProfile from "@/hooks/useStudentProfile";
 import type { Course } from "@/types";
 import AttendanceTracker from "@/components/ui/AttendanceTracker";
+import useAttendance from "@/hooks/useAttendance";
+import { toast } from "sonner";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 
 interface StudentPersonalDetailsProps {
   studentId?: string;
+  batchDate?: string;
 }
 
 const StudentPersonalDetails: React.FC<StudentPersonalDetailsProps> = ({
   studentId,
+  batchDate,
 }) => {
   const { studentProfile } = useStudentProfile();
-
   const student = studentProfile?.find((s) => s.unique_id === studentId);
-  console.log(student, "studentDetails");
+  const courseId = student?.course_details?.id || 0;
+  const { records, loading } = useAttendance(new Date(), courseId);
+  console.log(records, "records");
+
+  const studentAttendance = useMemo(() => {
+    return records.filter((r) => r.student === studentId);
+  }, [records, studentId]);
+
+  const studentCreatedAt = batchDate || new Date().toISOString();
+  const duration = student?.course_details?.duration || "3 months";
+
+  // ✅ useMemo hooks always called
+  const initialMonth = useMemo(() => {
+    const now = new Date();
+    const joinDate = new Date(studentCreatedAt);
+
+    if (now < joinDate) return joinDate;
+
+    const end = new Date(joinDate);
+    const durationMatch = duration.match(/(\d+)\s*(week|month)/i);
+
+    if (durationMatch) {
+      const value = parseInt(durationMatch[1], 10);
+      const unit = durationMatch[2].toLowerCase();
+      if (unit.startsWith("week")) end.setDate(end.getDate() + value * 7);
+      else if (unit.startsWith("month")) end.setMonth(end.getMonth() + value);
+    } else end.setMonth(end.getMonth() + 3);
+
+    if (now > end) return end;
+    return now;
+  }, [studentCreatedAt, duration]);
+
+  const [currentMonth, setCurrentMonth] = useState<Date>(initialMonth);
+
+  const { startDate, endDate } = useMemo(() => {
+    const start = new Date(studentCreatedAt);
+    const end = new Date(start);
+    const durationMatch = duration.match(/(\d+)\s*(week|month)/i);
+
+    if (durationMatch) {
+      const value = parseInt(durationMatch[1], 10);
+      const unit = durationMatch[2].toLowerCase();
+      if (unit.startsWith("week")) end.setDate(end.getDate() + value * 7);
+      else if (unit.startsWith("month")) end.setMonth(end.getMonth() + value);
+    } else end.setMonth(end.getMonth() + 3);
+
+    return { startDate: start, endDate: end };
+  }, [studentCreatedAt, duration]);
+
+  const handleGenerateReport = () => {
+    if (!studentAttendance.length) {
+      toast.error("No attendance records found for this student");
+      return;
+    }
+
+    const data = studentAttendance.map((r) => ({
+      "Student Name": r.student_name,
+      "Course ID": r.student_course,
+      Date: new Date(r.date).toLocaleDateString(),
+      Status: r.status.toUpperCase(),
+      "Marked By": r.marked_by ?? "—",
+      "Marked By Student": r.marked_by_student ? "Yes" : "No",
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Attendance Report");
+
+    const fileName = `${student?.name || "student"}_attendance_report.xlsx`;
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
+    const blob = new Blob([excelBuffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+
+    saveAs(blob, fileName);
+    toast.success("Report downloaded successfully!");
+  };
+
   if (!student) {
     return (
       <div className="flex items-center justify-center min-h-screen text-gray-500">
@@ -50,7 +135,6 @@ const StudentPersonalDetails: React.FC<StudentPersonalDetailsProps> = ({
     university_major,
     university_year,
     batch_number,
-    created_at,
     progress,
     payment_completed,
     paid_amount,
@@ -64,6 +148,7 @@ const StudentPersonalDetails: React.FC<StudentPersonalDetailsProps> = ({
   const course: Course = course_details as Course;
   const tutor = course?.tutor_name || "N/A";
 
+  console.log(student, "studentDetails");
   console.log(course, "course object");
   console.log(tutor, "tutorName");
 
@@ -89,7 +174,7 @@ const StudentPersonalDetails: React.FC<StudentPersonalDetailsProps> = ({
                 <h1 className="text-3xl font-bold mb-1 capitalize">{name}</h1>
                 <p className="text-indigo-100">Batch #{batch_number}</p>
                 <p className="text-indigo-100">
-                  Joined: {new Date(created_at).toLocaleDateString()}
+                  Joined: {new Date(studentCreatedAt).toLocaleDateString()}
                 </p>
               </div>
             </div>
@@ -141,6 +226,14 @@ const StudentPersonalDetails: React.FC<StudentPersonalDetailsProps> = ({
             </div>
             <h2 className="text-2xl font-bold text-gray-800">Course Details</h2>
           </div>
+          <div>
+            {currentMonth > endDate && (
+              <p className="w-[40%] text-sm text-red-500 relative top-5">
+                This student’s course has ended. Displaying final month of
+                attendance.
+              </p>
+            )}
+          </div>
 
           <div className="grid md:grid-cols-2 gap-8">
             <div className="content-center">
@@ -161,13 +254,24 @@ const StudentPersonalDetails: React.FC<StudentPersonalDetailsProps> = ({
                   </span>
                 </p>
               </div>
+              <div>
+                <button
+                  type="button"
+                  onClick={handleGenerateReport}
+                  disabled={loading}
+                  className="mt-3 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-xl font-medium shadow-sm"
+                >
+                  {loading ? "Loading..." : "Generate Attendance Report"}
+                </button>
+              </div>
             </div>
 
             <div>
               <AttendanceTracker
                 profileId={student?.unique_id || ""}
                 courseId={course?.id || 0}
-                studentCreatedAt={student?.created_at || ""}
+                studentCreatedAt={batchDate || ""}
+                duration={course?.duration || "N/A"}
               />
             </div>
           </div>

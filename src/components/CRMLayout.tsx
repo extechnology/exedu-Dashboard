@@ -18,7 +18,9 @@ import {
   ClockAlert,
   UserRoundPlus,
   BookOpenCheck,
+  Landmark,
 } from "lucide-react";
+import { BiSolidSchool } from "react-icons/bi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
@@ -34,6 +36,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import useNotification from "@/hooks/useNotification";
+import useUsers from "@/hooks/useUser";
 
 interface CRMLayoutProps {
   children: React.ReactNode;
@@ -41,6 +44,7 @@ interface CRMLayoutProps {
 
 const navigation = [
   { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
+  { name: "Institutes", href: "/admin/institute", icon: Landmark },
   { name: "Tutor", href: "/admin/tutor", icon: UserRoundPlus },
   { name: "Session", href: "/admin/session", icon: BookOpenCheck },
   { name: "Batch", href: "/admin/batch", icon: ClockAlert },
@@ -50,9 +54,6 @@ const navigation = [
   { name: "Certificates", href: "/admin/certificates", icon: Award },
   { name: "Enquiries", href: "/admin/enquiries", icon: Info },
   { name: "Contacts", href: "/admin/contacts", icon: CircleUser },
-
-  // { name: "Analytics", href: "/admin/analytics", icon: BarChart3 },
-  // { name: "Settings", href: "/admin/settings", icon: Settings },
 ];
 
 export default function CRMLayout({ children }: CRMLayoutProps) {
@@ -62,7 +63,8 @@ export default function CRMLayout({ children }: CRMLayoutProps) {
   const { notifications } = useNotification();
   const [isLogoutOpen, setLogoutOpen] = useState(false);
   const unreadCount = notifications.filter((n) => !n.is_read).length;
-
+  const region = localStorage.getItem("region");
+  
 
   const handleLogout = () => {
     localStorage.clear();
@@ -110,6 +112,11 @@ export default function CRMLayout({ children }: CRMLayoutProps) {
                 className="pl-9 bg-muted/50 border-0 focus-visible:ring-1"
                 placeholder="Search students, courses..."
               />
+            </div>
+            <div className="content-center ">
+              <h2 className="text-md bg-clip-text text-transparent bg-gradient-to-br from-primary to-accent  content-center font-semibold leading-6 ">
+                {region}
+              </h2>
             </div>
             <div className="flex items-center gap-x-4 lg:gap-x-6">
               <Link to={"/admin/notifications"}>
@@ -170,6 +177,13 @@ export default function CRMLayout({ children }: CRMLayoutProps) {
 function SidebarContent({ onClose }: { onClose?: () => void }) {
   const location = useLocation();
 
+  const { data } = useUsers();
+
+  const isAdmin = data?.find((user) => user.is_superuser);
+  const filteredNavigation = isAdmin
+    ? navigation
+    : navigation.filter((item) => item.name !== "Institutes");
+
   return (
     <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-card px-6 pb-4 md:shadow-xl">
       <div className="flex h-16 shrink-0 items-center justify-between">
@@ -189,7 +203,7 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
       </div>
       <nav className="flex flex-1 flex-col">
         <ul role="list" className="flex flex-1 flex-col gap-y-2">
-          {navigation.map((item) => {
+          {filteredNavigation.map((item) => {
             const isActive = location.pathname === item.href;
             return (
               <li key={item.name}>

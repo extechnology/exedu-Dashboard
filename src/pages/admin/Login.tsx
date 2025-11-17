@@ -12,15 +12,26 @@ import {
 import { toast } from "sonner";
 import { loginUser } from "@/api/apiServices/authServices";
 import { useNavigate } from "react-router-dom";
+import useRegion from "@/hooks/useRegion";
 
 export const Login = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [institute, setInstitute] = useState("");
+  const [instituteId, setInstituteId] = useState("");
   const navigate = useNavigate();
+  const { region } = useRegion();
+  console.log(region, "region");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!institute) {
+      toast.error("Please select your institute.");
+      return;
+    }
+
     setIsLoading(true);
     try {
       const response = await loginUser({ username, password });
@@ -29,6 +40,8 @@ export const Login = () => {
       localStorage.setItem("accessToken", response.access);
       localStorage.setItem("refreshToken", response.refresh);
       localStorage.setItem("userId", response.user_id);
+      localStorage.setItem("region", institute);
+      localStorage.setItem("region_id", instituteId);
 
       toast.success("Login successful!");
       navigate("/admin");
@@ -82,6 +95,41 @@ export const Login = () => {
                 required
               />
             </div>
+            <div className="space-y-2">
+              <Label
+                htmlFor="institute"
+                className="text-sm font-medium text-gray-700"
+              >
+                Select Institute
+              </Label>
+              <select
+                id="institute"
+                title="Select Institute"
+                value={instituteId}
+                onChange={(e) => {
+                  const selectedId = e.target.value;
+                  setInstituteId(selectedId);
+
+                  const selectedRegion = region.find(
+                    (item) => item.id === parseInt(selectedId)
+                  );
+
+                  setInstitute(selectedRegion?.region || "");
+                }}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent bg-white text-gray-800"
+                required
+              >
+                <option value="" disabled>
+                  -- Choose an institute --
+                </option>
+                {region.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.region}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <Button
               type="submit"
               className="w-full h-11 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-semibold"

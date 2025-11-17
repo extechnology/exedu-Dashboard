@@ -41,7 +41,7 @@ type ExcelRow = {
 const Attendance = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedSession, setSelectedSession] = useState<string | null>(null);
-const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
+  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
 
   const { studentProfile, loading, error } = useStudentProfile();
   const { course, loading: courseLoading, error: courseError } = useCourse();
@@ -49,6 +49,7 @@ const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const studentsPerPage = 5;
   const { session } = useSession();
+  const region = localStorage.getItem("region");
   const selectedSessionObj = session.find(
     (s: any) => String(s.id) === selectedSession
   );
@@ -61,7 +62,7 @@ const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const accessibleStudents = useMemo(
     () =>
       Array.isArray(studentProfile)
-        ? studentProfile.filter((s: any) => s?.can_access_profile)
+        ? studentProfile.filter((s: any) => s?.can_access_profile && s?.region_name === region)
         : [],
     [studentProfile]
   );
@@ -76,8 +77,9 @@ const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
     return parts.length > 0 ? parts.join(" ") : `${seconds} sec`;
   }
 
-  const SessionOptions = Array.isArray(session)
+  const SessionOptions = region
     ? [...session]
+        .filter((s: any) => s.region_name === region)
         .sort(
           (a: any, b: any) =>
             new Date(b.start_time).getTime() - new Date(a.start_time).getTime()
@@ -194,7 +196,6 @@ const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
     return variants[status];
   };
 
-
   const bulkSet = (status: Status) => {
     setStatusMap((m) => {
       const next = { ...m };
@@ -237,7 +238,6 @@ const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Attendance Report");
 
-      // Export Excel file
       const excelBuffer = XLSX.write(workbook, {
         bookType: "xlsx",
         type: "array",
@@ -263,9 +263,7 @@ const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
     }
 
     try {
-      const response = await axiosInstance.get(
-        `/attendance/` 
-      );
+      const response = await axiosInstance.get(`/attendance/`);
 
       const courseData = response.data;
 
@@ -308,7 +306,6 @@ const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
       alert("Failed to download course attendance. See console for details.");
     }
   };
-
 
   return (
     <div className="space-y-6">

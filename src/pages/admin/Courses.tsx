@@ -60,6 +60,7 @@ const Courses = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [courseToDelete, setCourseToDelete] = useState<Course | null>(null);
+  const region = localStorage.getItem("region");
 
   const courseTitleToKeyMap: Record<string, string> = Object.fromEntries(
     Object.entries(courseLabelMap).map(([key, label]) => [label, key])
@@ -173,17 +174,19 @@ const Courses = () => {
   }
 
   const filteredCourses = Array.isArray(course)
-    ? course.filter((course) => {
-        const search = searchTerm.toLowerCase();
-        return (
-          (course.title || "").toLowerCase().includes(search) ||
-          (course.tutor || "").toLowerCase().includes(search) ||
-          (course.description || "").toLowerCase().includes(search)
-        );
-      })
+    ? course
+        .filter((course) => course.region_name === region)
+        .filter((course) => {
+          const search = searchTerm.toLowerCase();
+          return (
+            (course.title || "").toLowerCase().includes(search) ||
+            (course.tutor || "").toLowerCase().includes(search) ||
+            (course.description || "").toLowerCase().includes(search)
+          );
+        })
     : [];
 
-    console.log(filteredCourses, "filteredCourses");
+  console.log(filteredCourses, "filteredCourses");
   const activeUsers = Array.isArray(studentProfile)
     ? studentProfile.filter((p) => p.can_access_profile)
     : [];

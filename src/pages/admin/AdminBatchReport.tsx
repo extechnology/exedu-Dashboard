@@ -15,6 +15,8 @@ import {
 const AdminBatchReportPage = () => {
   const { data, loading, error, refetch } = useAdminBatchReport();
   const [expandedBatches, setExpandedBatches] = useState({});
+  const region = localStorage.getItem("region");
+  console.log(data,"date from the hook")
 
   const toggleBatch = (batchNumber) => {
     setExpandedBatches((prev) => ({

@@ -26,13 +26,15 @@ const SessionPage: React.FC = () => {
   const { session } = useSession();
   const { courseOptions } = useCourseOptions();
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const region = localStorage.getItem("region");
+  console.log(session, "session");
 
   const handleSessionUpdate = (updated: Session) => {
     setSessions((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
   };
 
-  const sessionsWithCourseTitle = session.map((session) => {
-    const course = courseOptions.find((c) => c.id === session.course);
+  const sessionsWithCourseTitle = session?.filter((session) => {
+    const course = courseOptions.find((c) => c.id === session.course && c?.region_name === region);
     return {
       ...session,
       courseTitle: course ? course.title : "Unknown Course",
@@ -72,7 +74,7 @@ const SessionPage: React.FC = () => {
   };
 
   // Filter sessions based on search query
-  const filteredSessions = sessions.filter((session) => {
+  const filteredSessions = sessions.filter((session) => session?.region_name === region).filter((session) => {
     const query = searchQuery.toLowerCase();
     return (
       session.title?.toLowerCase().includes(query) ||
@@ -374,7 +376,7 @@ const SessionPage: React.FC = () => {
                 title="edit session"
                 className="text-sm relative bottom-4 right-3 rounded-md flex justify-end  text-white"
               >
-                <Edit className="w-5 h-5"  />
+                <Edit className="w-5 h-5" />
               </div>
             </div>
 

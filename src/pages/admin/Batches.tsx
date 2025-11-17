@@ -39,6 +39,10 @@ export default function BatchesPage() {
   const [selectedBatch, setSelectedBatch] = useState<Batch | null>(null);
   const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
   const [studentModalOpen, setStudentModalOpen] = useState(false);
+  const region = localStorage.getItem("region");
+  const totalStudents =
+    studentProfile?.filter((student) => student.region_name === region)
+      .length || 0;
 
   console.log(selectedBatch);
   console.log(batch, "batch");
@@ -46,7 +50,9 @@ export default function BatchesPage() {
 
   const filteredStudents = selectedBatch
     ? studentProfile.filter(
-        (student) => student.batch_number === selectedBatch.batch_number
+        (student) =>
+          student.batch_number === selectedBatch.batch_number &&
+          student.region_name === region
       )
     : [];
 
@@ -65,18 +71,24 @@ export default function BatchesPage() {
       return;
     }
 
-    const reportData = filteredStudents.map((student, index) => {
-      // Flatten attendance
-      const attendanceSummary = student.attendance_list
-        .map(
-          (att) =>
-            `${att.date}: ${
-              att.status.charAt(0).toUpperCase() + att.status.slice(1)
-            }`
-        )
-        .join("; ");
+    // 1️⃣ Collect and format all unique attendance dates
+    const allDatesSet = new Set<string>();
+    filteredStudents.forEach((student) => {
+      student.attendance_list?.forEach((att) => {
+        // Convert to readable format, e.g. "Nov 8, 2025"
+        const formattedDate = new Date(att.date).toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        });
+        allDatesSet.add(formattedDate);
+      });
+    });
+    const allDates = Array.from(allDatesSet).sort();
 
-      return {
+    // 2️⃣ Build report data
+    const reportData = filteredStudents.map((student, index) => {
+      const row: any = {
         "S.No": index + 1,
         "Student Name": student.name,
         Email: student.email,
@@ -87,19 +99,36 @@ export default function BatchesPage() {
         "End Date": selectedBatch.end_date || "N/A",
         "Start Time": selectedBatch.time_start || "N/A",
         Status: student.is_public ? "Active" : "Inactive",
-
         "Amount Paid": student.paid_amount || "N/A",
         "Payment Date": student.paid_at || "N/A",
         "Payment Status": student.payment_completed ? "Paid" : "Unpaid",
-
-        Attendance: attendanceSummary, // <-- flattened
       };
+
+      // 3️⃣ Attendance map with formatted keys
+      const attendanceMap: Record<string, string> = {};
+      student.attendance_list?.forEach((att) => {
+        const formattedDate = new Date(att.date).toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        });
+        attendanceMap[formattedDate] =
+          att.status.toLowerCase() === "present" ? "✅" : "❌";
+      });
+
+      allDates.forEach((date) => {
+        row[date] = attendanceMap[date] || "-";
+      });
+
+      return row;
     });
 
+    // 4️⃣ Create Excel workbook
     const worksheet = XLSX.utils.json_to_sheet(reportData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Batch Report");
 
+    // 5️⃣ Auto-adjust column width
     const maxWidths = Object.keys(reportData[0]).map((key) =>
       Math.max(
         key.length,
@@ -108,6 +137,7 @@ export default function BatchesPage() {
     );
     worksheet["!cols"] = maxWidths.map((w) => ({ wch: w + 2 }));
 
+    // 6️⃣ Export Excel
     const excelBuffer = XLSX.write(workbook, {
       bookType: "xlsx",
       type: "array",
@@ -115,7 +145,6 @@ export default function BatchesPage() {
     const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
     saveAs(blob, `Batch_${selectedBatch.batch_number}_Report.xlsx`);
   };
-
 
   const getStudentCount = (batchNumber: string) => {
     return studentProfile.filter(
@@ -169,7 +198,7 @@ export default function BatchesPage() {
                 <div>
                   <p className="text-sm text-gray-600">Total Students</p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {studentProfile?.length || 0}
+                    {totalStudents}
                   </p>
                 </div>
               </div>
@@ -222,72 +251,80 @@ export default function BatchesPage() {
 
       {/* Batch Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredBatches?.map((b) => (
-          <div
-            key={b.id}
-            className="group bg-white/70 backdrop-blur-sm rounded-3xl p-6 border border-white/20 shadow-lg hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 cursor-pointer"
-            onClick={() => setSelectedBatch(b)}
-          >
-            {/* Batch Header */}
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-2xl">
-                  <BookOpen className="w-6 h-6 text-white" />
+        {filteredBatches
+          .filter((b) => b.region_name === region)
+          ?.slice()
+          .sort(
+            (a, b) =>
+              new Date(b.created_at).getTime() -
+              new Date(a.created_at).getTime()
+          )
+          .map((b) => (
+            <div
+              key={b.id}
+              className="group bg-white/70 backdrop-blur-sm rounded-3xl p-6 border border-white/20 shadow-lg hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 cursor-pointer"
+              onClick={() => setSelectedBatch(b)}
+            >
+              {/* Batch Header */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-2xl">
+                    <BookOpen className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900">
+                      Batch {b.batch_number}
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      {formatCourseName(b.course_name)}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900">
-                    Batch {b.batch_number}
-                  </h3>
-                  <p className="text-sm text-gray-600">
-                    {formatCourseName(b.course_name)}
-                  </p>
-                </div>
-              </div>
-              <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-indigo-500 transition-colors" />
-            </div>
-
-            {/* Batch Details */}
-            <div className="space-y-3 mb-4">
-              <div className="flex items-center gap-3 text-sm">
-                <div className="flex items-center gap-2 text-gray-600">
-                  <Calendar className="w-4 h-4" />
-                  <span className="font-medium">Date:</span>
-                </div>
-                <span className="text-gray-900">{b.date}</span>
-                <span className="text-gray-400">to</span>
-                <span className="text-gray-900">{b.end_date || "--"}</span>
+                <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-indigo-500 transition-colors" />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-center gap-2 text-sm">
-                  <Clock className="w-4 h-4 text-gray-600" />
-                  <span className="font-semibold text-gray-600">
-                    {b.time_start
-                      ? new Date(
-                          `1970-01-01T${b.time_start}`
-                        ).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          hour12: true,
-                        })
-                      : "--"}
-                  </span>
+              {/* Batch Details */}
+              <div className="space-y-3 mb-4">
+                <div className="flex items-center gap-3 text-sm">
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Calendar className="w-4 h-4" />
+                    <span className="font-medium">Date:</span>
+                  </div>
+                  <span className="text-gray-900">{b.date}</span>
+                  <span className="text-gray-400">to</span>
+                  <span className="text-gray-900">{b.end_date || "--"}</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Clock className="w-4 h-4 text-gray-600" />
+                    <span className="font-semibold text-gray-600">
+                      {b.time_start
+                        ? new Date(
+                            `1970-01-01T${b.time_start}`
+                          ).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            hour12: true,
+                          })
+                        : "--"}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Student Count */}
-            <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-              <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-gray-600" />
-                <span className="text-sm text-gray-600">Students</span>
+              {/* Student Count */}
+              <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-gray-600" />
+                  <span className="text-sm text-gray-600">Students</span>
+                </div>
+                <span className="text-lg font-bold text-indigo-600">
+                  {getStudentCount(b.batch_number)}
+                </span>
               </div>
-              <span className="text-lg font-bold text-indigo-600">
-                {getStudentCount(b.batch_number)}
-              </span>
             </div>
-          </div>
-        ))}
+          ))}
       </div>
 
       {filteredBatches?.length === 0 && (
@@ -498,7 +535,10 @@ export default function BatchesPage() {
           isOpen={studentModalOpen}
           onClose={() => setStudentModalOpen(false)}
         >
-          <StudentPersonalDetails studentId={selectedStudent.unique_id} />
+          <StudentPersonalDetails
+            studentId={selectedStudent.unique_id}
+            batchDate={selectedBatch.date}
+          />
         </Modal>
       )}
     </div>

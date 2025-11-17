@@ -21,6 +21,7 @@ import TutorPage from "./pages/admin/Tutor";
 import SessionPage from "./pages/admin/Session";
 import StudentPersonalDetails from "./pages/admin/StudentPersonalDetails";
 import { Login } from "./pages/admin/Login";
+import InstitutePage from "./pages/admin/Institutes";
 
 
 const queryClient = new QueryClient();
@@ -47,6 +48,7 @@ const App = () => (
           <Route path="/admin/enquiries" element={<CRMLayout><Enquiries /></CRMLayout>} />
           <Route path="/admin/students/:id" element={<CRMLayout><StudentPersonalDetails /></CRMLayout>} />
           <Route path="/admin/batch" element={<CRMLayout><BatchesPage /></CRMLayout>} />
+          <Route path="/admin/institute" element={<CRMLayout><InstitutePage /></CRMLayout>} />
           <Route path="/login" element={<Login />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

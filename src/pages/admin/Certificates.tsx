@@ -33,6 +33,7 @@ const Certificates = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [showModal, setShowModal] = useState(false);
   const { studentProfile } = useStudentProfile();
+  const region = localStorage.getItem("region");
   console.log(studentProfile, "studentProfile ");
   console.log(certificates, "certificates ");
 
@@ -49,7 +50,7 @@ const Certificates = () => {
     refreshCertificates();
   }, []);
 
-  const filteredCertificates = certificates
+  const filteredCertificates = certificates?.filter((cert) => cert.region_name === region)
     .slice()
     .sort((a, b) => b.id - a.id)
     .filter((cert) => {
@@ -88,10 +89,10 @@ const Certificates = () => {
   };
 
   const stats = {
-    totalCertificates: certificates.length,
-    issued: certificates.filter((c) => c.status === "Issued").length,
-    pending: certificates.filter((c) => c.status === "Pending").length,
-    draft: certificates.filter((c) => c.status === "Draft").length,
+    totalCertificates: filteredCertificates.length,
+    issued: filteredCertificates.filter((c) => c.status === "Issued").length,
+    pending: filteredCertificates.filter((c) => c.status === "Pending").length,
+    draft: filteredCertificates.filter((c) => c.status === "Draft").length,
   };
 
   const exportToExcel = () => {

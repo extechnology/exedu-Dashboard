@@ -95,6 +95,7 @@ const Students = () => {
   const { studentProfile, loading, error } = useStudentProfile();
   const { courseOptions } = useCourseOptions();
   const [imagePreview, setImagePreview] = useState<string>("");
+  const region = localStorage.getItem("region");
 
   console.log(selectedStudent, "selected student");
   const students = useMemo((): NormalizedStudent[] => {
@@ -102,7 +103,7 @@ const Students = () => {
 
     return (
       studentProfile
-        // .filter((s: StudentProfileData) => s.can_access_profile === true)
+        .filter((s: StudentProfile) => s.region_name === region)
         .map(
           (s: StudentProfile): NormalizedStudent => ({
             id: s.unique_id,
@@ -647,6 +648,15 @@ const Students = () => {
                     <p className="text-sm font-semibold flex items-center gap-2">
                       <Phone className="h-4 w-4" />
                       {selectedStudent.phone_number || "N/A"}
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Institute
+                    </label>
+                    <p className="text-sm font-semibold flex items-center gap-2">
+                      <School className="h-4 w-4" />
+                      {selectedStudent.region_name || "N/A"}
                     </p>
                   </div>
                   <div className="space-y-2">

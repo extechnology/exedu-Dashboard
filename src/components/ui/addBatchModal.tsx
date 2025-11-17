@@ -16,6 +16,9 @@ export default function AddBatchModal({
 }: AddBatchModalProps) {
   const { courseOptions } = useCourseOptions();
   console.log(courseOptions, "courseOptions");
+  const region = localStorage.getItem("region");
+  const regionId = localStorage.getItem("region_id");
+  console.log(region,"region from localstorage")
 
   const [time, setTime] = useState("");
 
@@ -29,6 +32,7 @@ export default function AddBatchModal({
     batch_number: "",
     date: "",
     time_start: "",
+    region: regionId,
     end_date: "",
   });
 
@@ -97,6 +101,7 @@ export default function AddBatchModal({
 
         <h2 className="text-2xl font-bold text-center mb-4">Add New Batch</h2>
         {error && <p className="text-red-500 mb-2">{error}</p>}
+        <h2 className = "p-3 mb-3 bg-gray-400 rounded-lg text-white">Institute : {region}</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Tutor dropdown */}

@@ -45,6 +45,8 @@ export default function AddCourseModal({
   onClose,
   onCourseAdded,
 }: AddCourseModalProps) {
+  const region = localStorage.getItem("region")
+  const regionId = localStorage.getItem("region_id")
   const [formData, setFormData] = useState({
     title: "",
     sub_title: "",
@@ -53,11 +55,11 @@ export default function AddCourseModal({
     tutor_id: "",
     price: "",
     image: null as File | null,
+    region: Number(regionId),
   });
   const [imagePreview, setImagePreview] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const {tutorOptions} = useTutorOptions();
-  console.log(tutorOptions, "tutorOptions");
 
 const handleChange = (
   e: React.ChangeEvent<
@@ -124,6 +126,14 @@ const handleChange = (
         <div className="space-y-5 px-4 py-2">
           {/* Course Title */}
           <div className="space-y-1">
+            <Label>Institute</Label>
+            <Input
+              name="region"
+              placeholder={region}
+            />
+          </div>
+
+          <div className="space-y-1">
             <Label>Course Title</Label>
             <Select onValueChange={handleSelect} value={formData.title}>
               <SelectTrigger className="w-full border bg-muted/50">
@@ -175,7 +185,7 @@ const handleChange = (
 
             <div className="space-y-1">
               <Label>Tutor</Label>
-              
+
               <select
                 title="Select Tutor"
                 name="tutor_id"

@@ -27,7 +27,7 @@ const courseOptions = [
 ];
 
 interface SimpleStudent {
-  user: string; 
+  user: string;
   name: string;
   course: string;
 }
@@ -36,9 +36,8 @@ interface CertificateModalProps {
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  students?: SimpleStudent[]; 
+  students?: SimpleStudent[];
 }
-
 
 export default function CertificateModal({
   open,
@@ -53,32 +52,33 @@ export default function CertificateModal({
   const [description, setDescription] = useState("");
   const [grade, setGrade] = useState("");
   const [loading, setLoading] = useState(false);
+  const region = localStorage.getItem("region");
+  const regionId = localStorage.getItem("region_id");
 
   console.log(selectedStudent, "selectedStudent");
   console.log(selectedCourse, "selectedCourse");
   console.log(selectedCourseId, "selectedCourseId");
 
   // when student changes, update course name and ID
- useEffect(() => {
-   if (selectedStudent && students) {
-     const student = students.find(
-       (s) => s.user.toString() === selectedStudent
-     );
-     if (student) {
-       setSelectedCourse(student.course ?? "");
-       // find by label instead of key
-       const courseObj = courseOptions.find((c) => c.label === student.course);
-       setSelectedCourseId(courseObj?.value ?? null);
-     } else {
-       setSelectedCourse("");
-       setSelectedCourseId(null);
-     }
-   } else {
-     setSelectedCourse("");
-     setSelectedCourseId(null);
-   }
- }, [selectedStudent, students]);
-
+  useEffect(() => {
+    if (selectedStudent && students) {
+      const student = students.find(
+        (s) => s.user.toString() === selectedStudent
+      );
+      if (student) {
+        setSelectedCourse(student.course ?? "");
+        // find by label instead of key
+        const courseObj = courseOptions.find((c) => c.label === student.course);
+        setSelectedCourseId(courseObj?.value ?? null);
+      } else {
+        setSelectedCourse("");
+        setSelectedCourseId(null);
+      }
+    } else {
+      setSelectedCourse("");
+      setSelectedCourseId(null);
+    }
+  }, [selectedStudent, students]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,6 +93,7 @@ export default function CertificateModal({
     formData.append("grade", grade);
     formData.append("profile", selectedStudent);
     formData.append("course", String(selectedCourseId));
+    formData.append("region", regionId);
 
     try {
       setLoading(true);
@@ -121,6 +122,11 @@ export default function CertificateModal({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* File Upload */}
+          <div className="space-y-2 ">
+            <Label htmlFor="certificate_file">Institute</Label>
+            <Input className="placeholder:text-gray-400" placeholder={region} disabled  />
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="certificate_file">Certificate File</Label>
             <Input
