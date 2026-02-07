@@ -193,6 +193,9 @@ export interface TutorAttendance {
   id: number;
   tutor: number;
   session: number;
+  duration: string;
+  start_time: string;
+  session_title: string;
   date: string;
   status: "present" | "absent";
 }

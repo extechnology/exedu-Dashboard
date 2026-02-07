@@ -1,41 +1,51 @@
-
 import axiosInstance from "@/api/axiosInstance";
 import { motion, AnimatePresence } from "framer-motion";
-import { PlusCircle, Mail, Phone, User, X,Edit } from "lucide-react";
+import { PlusCircle, Mail, Phone, User, X, Edit } from "lucide-react";
 import EditTutorModal from "@/components/ui/EditTutorModal";
 import { useEffect, useState } from "react";
 import useRegion from "@/hooks/useRegion";
 import type { Region } from "@/types";
 import { format } from "date-fns";
 import EditRegionModal from "@/components/ui/editInstituteModal";
-
+import useUsers from "@/hooks/useUser";
 
 const InstitutePage: React.FC = () => {
   const [institutes, setInstitutes] = useState<Region[]>([]);
   const [open, setOpen] = useState(false);
-  const { region:Regions, loading: regionLoading, error: regionError } = useRegion();
+  const {
+    region: Regions,
+    loading: regionLoading,
+    error: regionError,
+  } = useRegion();
   const [loading, setLoading] = useState(false);
   const [selectedRegion, setSelectedRegion] = useState<Region | null>(null);
   const [editOpen, setEditOpen] = useState(false);
-  const region = localStorage.getItem('region')
-  const regionId = localStorage.getItem('region_id')
+  const region = localStorage.getItem("region");
+  const regionId = localStorage.getItem("region_id");
+  const { data } = useUsers();
+  console.log(data, "user data");
+  const userId = localStorage.getItem("userId");
+  console.log(userId, "user id");
+
+  const superUser = data?.filter(
+    (user) => user.id === Number(userId) && user.is_superuser === true,
+  );
+  console.log(superUser, "super user");
   const [formData, setFormData] = useState<{
     phone: string;
     image: File | null;
-    region:number;
+    region: number;
   }>({
     phone: "",
     image: null,
-    region:Number(regionId)
+    region: Number(regionId),
   });
-
 
   const handleInstituteUpdated = (updatedRegion: Region) => {
     setInstitutes((prev) =>
-      prev.map((t) => (t.id === updatedRegion.id ? updatedRegion : t))
+      prev.map((t) => (t.id === updatedRegion.id ? updatedRegion : t)),
     );
   };
-  
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -64,7 +74,7 @@ const InstitutePage: React.FC = () => {
       });
 
       setInstitutes([...institutes, res.data]);
-      setFormData({ phone: "", image: null ,region:Number(regionId)}); 
+      setFormData({ phone: "", image: null, region: Number(regionId) });
       setOpen(false);
     } catch (err) {
       console.error("Failed to add tutor:", err);
@@ -125,19 +135,21 @@ const InstitutePage: React.FC = () => {
               transition={{ delay: index * 0.1 }}
               whileHover={{ scale: 1.02, y: -5 }}
             >
-              <div
-                className="pt-4 absolute right-5 top-3 flex justify-center"
-                title="Edit region"
-              >
+              {superUser?.some((user) => user.is_superuser) && (
                 <div
-                  onClick={() => {
-                    setSelectedRegion(region);
-                    setEditOpen(true);
-                  }}
+                  className="pt-4 absolute right-5 top-3 flex justify-center"
+                  title="Edit region"
                 >
-                  <Edit className="text-slate-400 group-hover:text-indigo-600 h-4 w-4" />
+                  <div
+                    onClick={() => {
+                      setSelectedRegion(region);
+                      setEditOpen(true);
+                    }}
+                  >
+                    <Edit className="text-slate-400 group-hover:text-indigo-600 h-4 w-4" />
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Avatar */}
               <div className="flex justify-center mb-4">
@@ -170,7 +182,7 @@ const InstitutePage: React.FC = () => {
                       {region.created_at &&
                         format(
                           new Date(region.created_at),
-                          "dd MMM yyyy, hh:mm a"
+                          "dd MMM yyyy, hh:mm a",
                         )}
                     </span>
                   </div>

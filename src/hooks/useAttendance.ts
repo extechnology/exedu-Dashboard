@@ -12,7 +12,7 @@ export type AttendanceRecord = {
   student: number; // local student id (for dropdowns, UI, etc.)
   student_name?: string;
   student_course: number;
-  status: UIStatus; 
+  status: UIStatus;
   region: number;
   date: string;
 };
@@ -31,7 +31,7 @@ export type BulkAttendancePayload = {
 
 export type AttendanceItem = {
   id: number;
-  student: string; // UUID returned by serializer
+  student: string;
   student_name: string;
   student_course: number;
   date: string;
@@ -39,17 +39,16 @@ export type AttendanceItem = {
   attended_at: string | null;
   marked_by: number | null;
   marked_by_student: boolean;
-  region:number;
+  region: number;
 };
 
-
 export default function useAttendance(date: Date, courseId?: number) {
-  const [records, setRecords] = useState<AttendanceItem[]>([]); 
+  const [records, setRecords] = useState<AttendanceItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const regionId = localStorage.getItem("region_id")
+  const regionId = localStorage.getItem("region_id");
 
-  const formattedDate = date.toISOString().split("T")[0];
+  const formattedDate = date.toLocaleDateString("en-CA");
 
   useEffect(() => {
     const fetchAttendance = async () => {
@@ -57,7 +56,11 @@ export default function useAttendance(date: Date, courseId?: number) {
       setError(null);
       try {
         const res = await axiosInstance.get("/attendance/", {
-          params: { date: formattedDate, course: courseId },
+          params: {
+            date: formattedDate,
+            course: courseId,
+            region: Number(regionId),
+          },
         });
         setRecords(res.data as AttendanceItem[]);
       } catch (err: any) {
@@ -66,7 +69,7 @@ export default function useAttendance(date: Date, courseId?: number) {
         setLoading(false);
       }
     };
-    if (courseId) fetchAttendance(); 
+    if (courseId) fetchAttendance();
   }, [formattedDate, courseId]);
 
   const saveAttendance = async (updates: AttendanceUpdate[]) => {

@@ -6,18 +6,18 @@ import { ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { useTutorAttendance } from "@/hooks/useTutorAttendance";
 
-const TutorAttendanceModal = ({ sessions }) => {
+const TutorAttendanceModal = ({ sessions, setAttendanceOpen }) => {
   const { markAttendance, loading } = useTutorAttendance();
 
   const sortedSessions = useMemo(() => {
     return [...sessions].sort(
       (a, b) =>
-        new Date(b.start_time).getTime() - new Date(a.start_time).getTime()
+        new Date(b.start_time).getTime() - new Date(a.start_time).getTime(),
     );
   }, [sessions]);
 
   const [selectedSessionId, setSelectedSessionId] = useState(
-    sortedSessions[0]?.id || null
+    sortedSessions[0]?.id || null,
   );
 
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -25,7 +25,7 @@ const TutorAttendanceModal = ({ sessions }) => {
 
   const selectedSession = useMemo(
     () => sortedSessions.find((s) => s.id === selectedSessionId),
-    [sortedSessions, selectedSessionId]
+    [sortedSessions, selectedSessionId],
   );
 
   const tutorId = selectedSession?.tutor_details?.id;
@@ -43,7 +43,7 @@ const TutorAttendanceModal = ({ sessions }) => {
       tutorId,
       selectedSessionId,
       format(selectedDate, "yyyy-MM-dd"),
-      selectedStatus as "present" | "absent"
+      selectedStatus as "present" | "absent",
     );
 
     toast.success("Attendance marked successfully!");
@@ -51,9 +51,27 @@ const TutorAttendanceModal = ({ sessions }) => {
     setSelectedStatus("");
   };
 
+  const formatDuration = (duration: string) => {
+    const [hours, minutes] = duration.split(":").map(Number);
+
+    if (hours && minutes)
+      return `${hours} hour${hours > 1 ? "s" : ""} ${minutes} minutes`;
+    if (hours) return `${hours} hour${hours > 1 ? "s" : ""}`;
+    if (minutes) return `${minutes} minutes`;
+
+    return "0 minutes";
+  };
+
   return (
-    <div className="flex flex-col items-center pt-10">
-      <div className="bg-white w-full max-w-3xl rounded-2xl shadow-xl p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* BACKDROP */}
+      <div
+        className="absolute inset-0 bg-black/40"
+        onClick={() => setAttendanceOpen(false)}
+      />
+
+      {/* MODAL CONTENT */}
+      <div className="relative bg-white w-full max-w-3xl rounded-2xl shadow-xl p-6 z-10">
         <h2 className="text-xl font-semibold mb-6 text-center">
           Tutor Attendance
         </h2>
@@ -70,21 +88,18 @@ const TutorAttendanceModal = ({ sessions }) => {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Select Session
             </label>
-            <div className="relative mb-5">
-              <select
-              title="select session"
-                value={selectedSessionId}
-                onChange={(e) => setSelectedSessionId(Number(e.target.value))}
-                className="w-full border-2 border-gray-200 rounded-xl px-4 py-2"
-              >
-                {sortedSessions.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.title} — {format(parseISO(s.start_time), "dd MMM yyyy")}
-                  </option>
-                ))}
-              </select>
-              {/* <ChevronDown className="absolute right-3 top-3 text-gray-500" /> */}
-            </div>
+
+            <select
+              value={selectedSessionId}
+              onChange={(e) => setSelectedSessionId(Number(e.target.value))}
+              className="w-full border-2 border-gray-200 rounded-xl px-4 py-2 mb-5"
+            >
+              {sortedSessions.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.title} — {format(parseISO(s.start_time), "dd MMM yyyy")}
+                </option>
+              ))}
+            </select>
 
             {/* TUTOR INFO */}
             {selectedSession && (
@@ -93,12 +108,12 @@ const TutorAttendanceModal = ({ sessions }) => {
                   Tutor: {selectedSession.tutor_details?.name}
                 </p>
                 <p className="text-sm text-gray-600">
-                  Duration: {selectedSession.duration}
+                  Duration: {formatDuration(selectedSession.duration)}
                 </p>
               </div>
             )}
 
-            {/* SELECT ATTENDANCE */}
+            {/* ATTENDANCE */}
             {selectedDate && (
               <div className="mt-6">
                 <h3 className="font-medium mb-2">

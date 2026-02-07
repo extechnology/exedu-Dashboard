@@ -1,6 +1,7 @@
 import axiosInstance from "@/api/axiosInstance";
 import { motion, AnimatePresence } from "framer-motion";
-import { PlusCircle, Mail, Phone, User, X, Edit } from "lucide-react";
+import { useMemo } from "react";
+import { PlusCircle, Mail, Phone, User, X, Edit, Check } from "lucide-react";
 import EditTutorModal from "@/components/ui/EditTutorModal";
 import { useEffect, useState } from "react";
 import TutorAttendanceModal from "@/components/ui/TutorAttendance";
@@ -22,10 +23,12 @@ interface Tutor {
 const TutorPage: React.FC = ({ tutorId }: { tutorId: number }) => {
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [open, setOpen] = useState(false);
+  const [attendanceOpen, setAttendanceOpen] = useState(false);
   const [openModal, setOpenModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [selectedTutor, setSelectedTutor] = useState<Tutor | null>(null);
-  
+  const [searchTerm, setSearchTerm] = useState("");
+
   const {
     tutorAttendance,
     loading: attendanceDataLoading,
@@ -58,14 +61,26 @@ const TutorPage: React.FC = ({ tutorId }: { tutorId: number }) => {
     loading: attendanceLoading,
     error,
   } = useTutorAttendance();
-  const tutorsByRegion = tutors.filter((tutor) => tutor.region_name === region);
-  console.log(tutorsByRegion, "tutors by region");
+  const filteredTutors = useMemo(() => {
+    const term = searchTerm.toLowerCase();
+
+    return tutors
+      .filter((tutor) => tutor.region_name === region)
+      .filter((tutor) => {
+        return (
+          tutor.name.toLowerCase().includes(term) ||
+          tutor.region_name.toLowerCase().includes(term)
+        );
+      });
+  }, [tutors, region, searchTerm]);
+
+  console.log(filteredTutors, "tutors by region");
   const sessionByRegion = session.filter((s) => s.region_name === region);
   console.log("🧩 TutorPage tutorId:", tutorId);
 
   const handleTutorUpdated = (updatedTutor: Tutor) => {
     setTutors((prev) =>
-      prev.map((t) => (t.id === updatedTutor.id ? updatedTutor : t))
+      prev.map((t) => (t.id === updatedTutor.id ? updatedTutor : t)),
     );
   };
   const fetchTutors = async () => {
@@ -136,17 +151,40 @@ const TutorPage: React.FC = ({ tutorId }: { tutorId: number }) => {
             </h1>
             <p className="text-slate-600 mt-2">Manage your tutoring team</p>
           </div>
-          <motion.button
-            onClick={() => setOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white shadow-md hover:scale-105 transition-transform"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <div className="p-2 text-white group-hover:shadow-lg transition-all duration-200">
-              <PlusCircle size={20} />
-            </div>
-            <span className="font-semibold text-white">Add New Tutor</span>
-          </motion.button>
+          <div>
+            <input
+              type="text"
+              placeholder="Search tutor by name"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full sm:w-72 px-4 py-2 rounded-xl border-2 border-slate-200 
+             focus:border-indigo-400 focus:outline-none bg-white"
+            />
+          </div>
+          <div className="flex gap-5">
+            <motion.button
+              onClick={() => setAttendanceOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white shadow-md hover:scale-105 transition-transform"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <div className="p-2 text-white group-hover:shadow-lg transition-all duration-200">
+                <Check size={20} />
+              </div>
+              <span className="font-semibold text-white">Mark Attendance</span>
+            </motion.button>
+            <motion.button
+              onClick={() => setOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white shadow-md hover:scale-105 transition-transform"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <div className="p-2 text-white group-hover:shadow-lg transition-all duration-200">
+                <PlusCircle size={20} />
+              </div>
+              <span className="font-semibold text-white">Add New Tutor</span>
+            </motion.button>
+          </div>
         </div>
 
         {/* Stats Overview */}
@@ -159,7 +197,7 @@ const TutorPage: React.FC = ({ tutorId }: { tutorId: number }) => {
               <div>
                 <p className="text-sm text-slate-600">Total Tutors</p>
                 <p className="text-2xl font-bold text-slate-800">
-                  {tutorsByRegion.length}
+                  {filteredTutors.length}
                 </p>
               </div>
             </div>
@@ -168,7 +206,7 @@ const TutorPage: React.FC = ({ tutorId }: { tutorId: number }) => {
 
         {/* Tutors Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {tutorsByRegion.map((tutor, index) => (
+          {filteredTutors.map((tutor, index) => (
             <motion.div
               key={tutor.id}
               className="group relative bg-white/80 backdrop-blur-sm rounded-3xl p-6 border border-white/40 shadow-sm hover:shadow-xl hover:bg-white transition-all duration-300"
@@ -247,7 +285,12 @@ const TutorPage: React.FC = ({ tutorId }: { tutorId: number }) => {
           ))}
         </div>
 
-        <TutorAttendanceModal sessions={sessionByRegion} />
+        {attendanceOpen && (
+          <TutorAttendanceModal
+            sessions={sessionByRegion}
+            setAttendanceOpen={setAttendanceOpen}
+          />
+        )}
 
         {/* Empty State */}
         {tutors.length === 0 && (

@@ -16,6 +16,7 @@ import { Session } from "@/types";
 import useSession from "@/hooks/useSession";
 import useCourseOptions from "@/hooks/useCourseOptions";
 import EditSessionModal from "@/components/ui/EditSessionModal";
+import useAttendance from "@/hooks/useAttendance";
 
 const SessionPage: React.FC = () => {
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -29,12 +30,28 @@ const SessionPage: React.FC = () => {
   const region = localStorage.getItem("region");
   console.log(session, "session");
 
+  const sessionDate = selectedSession
+    ? new Date(selectedSession.start_time)
+    : new Date();
+
+  const {
+    records: attendanceRecords,
+    setRecords: setAttendanceRecords,
+    saveAttendance,
+    loading: attendanceLoading,
+    error: attendanceError,
+  } = useAttendance(sessionDate, selectedSession?.course);
+
+  console.log(attendanceRecords, "attendanceRecords");
+
   const handleSessionUpdate = (updated: Session) => {
     setSessions((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
   };
 
   const sessionsWithCourseTitle = session?.filter((session) => {
-    const course = courseOptions.find((c) => c.id === session.course && c?.region_name === region);
+    const course = courseOptions.find(
+      (c) => c.id === session.course && c?.region_name === region,
+    );
     return {
       ...session,
       courseTitle: course ? course.title : "Unknown Course",
@@ -74,17 +91,19 @@ const SessionPage: React.FC = () => {
   };
 
   // Filter sessions based on search query
-  const filteredSessions = sessions.filter((session) => session?.region_name === region).filter((session) => {
-    const query = searchQuery.toLowerCase();
-    return (
-      session.title?.toLowerCase().includes(query) ||
-      session.tutor_details?.name?.toLowerCase().includes(query) ||
-      session.student_details?.some((student) =>
-        student.name?.toLowerCase().includes(query)
-      ) ||
-      session.duration?.toLowerCase().includes(query)
-    );
-  });
+  const filteredSessions = sessions
+    .filter((session) => session?.region_name === region)
+    .filter((session) => {
+      const query = searchQuery.toLowerCase();
+      return (
+        session.title?.toLowerCase().includes(query) ||
+        session.tutor_details?.name?.toLowerCase().includes(query) ||
+        session.student_details?.some((student) =>
+          student.name?.toLowerCase().includes(query),
+        ) ||
+        session.duration?.toLowerCase().includes(query)
+      );
+    });
 
   function formatCourseName(course: string | null) {
     if (!course) return "No Course";
@@ -392,9 +411,9 @@ const SessionPage: React.FC = () => {
                   <p className="text-indigo-700 font-medium">
                     <span className="text-sm ">
                       {(() => {
-                        if (!session[0]?.duration) return "";
+                        if (!selectedSession?.duration) return "";
                         const [hoursStr, minutesStr] =
-                          session[0].duration.split(":");
+                          selectedSession.duration.split(":");
                         const hours = parseInt(hoursStr, 10);
                         const minutes = parseInt(minutesStr, 10);
                         if (minutes > 0) {
@@ -476,16 +495,16 @@ const SessionPage: React.FC = () => {
                       }
 
                       return (
-                        <div key={student.id} className="relative">
+                        <div
+                          key={student.id}
+                          className="flex items-center gap-2"
+                        >
                           {imgSrc ? (
-                            <div className="flex items-center gap-2">
-                              <img
-                                src={imgSrc}
-                                alt={student.name || "Student"}
-                                className="w-8 h-8 rounded-full border-2 border-white shadow-sm"
-                              />
-                              <h1>{student?.name ?? "Student"}</h1>
-                            </div>
+                            <img
+                              src={imgSrc}
+                              alt={student.name || "Student"}
+                              className="w-8 h-8 rounded-full border-2 border-white shadow-sm"
+                            />
                           ) : (
                             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 border-2 border-white shadow-sm flex items-center justify-center">
                               <span className="text-xs font-semibold text-white">
@@ -493,6 +512,11 @@ const SessionPage: React.FC = () => {
                               </span>
                             </div>
                           )}
+
+                          {/* NAME ALWAYS RENDERS */}
+                          <h1 className="text-sm font-medium text-gray-800">
+                            {student.name || "Student"}
+                          </h1>
                         </div>
                       );
                     })}
