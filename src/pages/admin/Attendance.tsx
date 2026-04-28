@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
+import { downloadExcel } from "@/utils/downloadExcel";
 import {
   Calendar as CalendarIcon,
   Users,
@@ -38,21 +39,27 @@ type ExcelRow = {
   Summary?: string;
 };
 
+type ReportMode = "session" | "month";
+
 const Attendance = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
+  
   const [selectedSession, setSelectedSession] = useState<string | null>(null);
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
+  const [reportMode, setReportMode] = useState<ReportMode>("session");
 
   const { studentProfile, loading, error } = useStudentProfile();
-  const { course, loading: courseLoading, error: courseError } = useCourse();
-  const CourseTitles = Array.isArray(course) ? course.map((c) => c.title) : [];
-  const [currentPage, setCurrentPage] = useState(1);
+  // const { course, loading: courseLoading, error: courseError } = useCourse();
+  // const CourseTitles = Array.isArray(course) ? course.map((c) => c.title) : [];
+  // const [currentPage, setCurrentPage] = useState(1);
   const studentsPerPage = 5;
-  const { session } = useSession();
+  const { sessions:session } = useSession();
   const region = localStorage.getItem("region");
   const selectedSessionObj = session.find(
-    (s: any) => String(s.id) === selectedSession
+    (s: any) => String(s.id) === selectedSession,
   );
+
   const courseId = selectedSessionObj?.student_details[0]?.course;
 
   const { records, saveAttendance } = useAttendance(selectedDate, courseId);
@@ -62,9 +69,11 @@ const Attendance = () => {
   const accessibleStudents = useMemo(
     () =>
       Array.isArray(studentProfile)
-        ? studentProfile.filter((s: any) => s?.can_access_profile && s?.region_name === region)
+        ? studentProfile.filter(
+            (s: any) => s?.can_access_profile && s?.region_name === region,
+          )
         : [],
-    [studentProfile]
+    [studentProfile],
   );
 
   function formatDuration(duration: string) {
@@ -82,12 +91,12 @@ const Attendance = () => {
         .filter((s: any) => s.region_name === region)
         .sort(
           (a: any, b: any) =>
-            new Date(b.start_time).getTime() - new Date(a.start_time).getTime()
+            new Date(b.start_time).getTime() - new Date(a.start_time).getTime(),
         )
         .map((s: any) => {
           const formattedDate = format(
             new Date(s.start_time),
-            "dd MMM yyyy, hh:mm a"
+            "dd MMM yyyy, hh:mm a",
           );
           const formattedDuration = formatDuration(s.duration);
           const formattedLabel = `Session ${s.title} - ${formattedDuration} (${formattedDate})`;
@@ -100,25 +109,28 @@ const Attendance = () => {
         })
     : [];
 
-  const firstCourseValue =
-    SessionOptions.length > 0 ? (SessionOptions[0].props.value as string) : "";
-
   const filteredStudents = useMemo(() => {
     if (!selectedSession || !Array.isArray(session)) return accessibleStudents;
 
     const sessionObj = session.find(
-      (s: any) => String(s.id) === selectedSession
+      (s: any) => String(s.id) === selectedSession,
     );
     if (!sessionObj || !Array.isArray(sessionObj.students)) return [];
 
     const studentIdsInSession = sessionObj.students.map((id: any) =>
-      String(id)
+      String(id),
     );
 
     return accessibleStudents.filter((s: any) =>
-      studentIdsInSession.includes(String(s.unique_id))
+      studentIdsInSession.includes(String(s.unique_id)),
     );
   }, [accessibleStudents, selectedSession, session]);
+
+
+  useEffect(() => {
+    setSelectedMonths([]);
+  }, [reportMode]);
+
 
   useEffect(() => {
     if (SessionOptions.length > 0 && !selectedSession) {
@@ -128,11 +140,73 @@ const Attendance = () => {
 
   const totalPages = Math.ceil(filteredStudents.length / studentsPerPage);
 
-  const paginatedStudents = useMemo(() => {
-    const startIndex = (currentPage - 1) * studentsPerPage;
-    const endIndex = startIndex + studentsPerPage;
-    return filteredStudents.slice(startIndex, endIndex);
-  }, [filteredStudents, currentPage, studentsPerPage]);
+  // const paginatedStudents = useMemo(() => {
+  //   const startIndex = (currentPage - 1) * studentsPerPage;
+  //   const endIndex = startIndex + studentsPerPage;
+  //   return filteredStudents.slice(startIndex, endIndex);
+  // }, [filteredStudents, currentPage, studentsPerPage]);
+
+  const monthOptions = useMemo(() => {
+    const months = [];
+    const now = new Date();
+
+    for (let i = 0; i < 24; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push({
+        label: format(d, "MMMM yyyy"),
+        value: format(d, "yyyy-MM"),
+      });
+    }
+    return months;
+  }, []);
+
+  const handleDownloadSessionAttendance = async () => {
+    if (!selectedSession) {
+      alert("Please select a session");
+      return;
+    }
+
+    const res = await axiosInstance.get("/attendance/", {
+      params: { session: selectedSession },
+    });
+
+    downloadExcel(res.data, `Session_Attendance_${selectedSession}`);
+  };
+
+  const getDateRangeFromMonths = (months: string[]) => {
+    const dates = months.map((m) => {
+      const [y, mo] = m.split("-").map(Number);
+      return new Date(y, mo - 1, 1);
+    });
+
+    const start = new Date(Math.min(...dates.map((d) => d.getTime())));
+    const endMonth = new Date(Math.max(...dates.map((d) => d.getTime())));
+    const end = new Date(endMonth.getFullYear(), endMonth.getMonth() + 1, 0);
+
+    return {
+      start_date: format(start, "yyyy-MM-dd"),
+      end_date: format(end, "yyyy-MM-dd"),
+    };
+  };
+
+  const handleDownloadMonthAttendance = async () => {
+    if (!selectedMonths.length) {
+      alert("Please select at least one month");
+      return;
+    }
+
+    const { start_date, end_date } = getDateRangeFromMonths(selectedMonths);
+
+    const res = await axiosInstance.get("/attendance/report/", {
+      params: {
+        start_date,
+        end_date,
+        session: selectedSession || undefined,
+      },
+    });
+
+    downloadExcel(res.data, `Attendance_${start_date}_to_${end_date}`);
+  };
 
   function formatCourseName(course: string | null) {
     if (!course) return "No Course";
@@ -248,62 +322,11 @@ const Attendance = () => {
 
       saveAs(
         blob,
-        `Attendance_Report_${format(selectedDate, "yyyy-MM-dd")}.xlsx`
+        `Attendance_Report_${format(selectedDate, "yyyy-MM-dd")}.xlsx`,
       );
     } catch (err) {
       console.error("Failed to generate report:", err);
       alert("Failed to generate report. See console for details.");
-    }
-  };
-
-  const handleDownloadCourseAttendance = async () => {
-    if (!selectedCourseId) {
-      alert("Please select a course first.");
-      return;
-    }
-
-    try {
-      const response = await axiosInstance.get(`/attendance/`);
-
-      const courseData = response.data;
-
-      if (!Array.isArray(courseData) || courseData.length === 0) {
-        alert("No attendance records found for this course.");
-        return;
-      }
-
-      // Prepare Excel rows
-      const data: ExcelRow[] = courseData.map((record: any) => ({
-        "Student Name": record.student_name || "Unknown",
-        Course: record.course_name || "N/A",
-        Status: record.status?.charAt(0).toUpperCase() + record.status.slice(1),
-        Date: format(new Date(record.date), "dd MMM yyyy"),
-      }));
-
-      // Create Excel
-      const worksheet = XLSX.utils.json_to_sheet(data);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Course Attendance");
-
-      const excelBuffer = XLSX.write(workbook, {
-        bookType: "xlsx",
-        type: "array",
-      });
-
-      const blob = new Blob([excelBuffer], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      });
-
-      saveAs(
-        blob,
-        `Course_Attendance_${selectedCourseId}_${format(
-          new Date(),
-          "yyyy-MM-dd"
-        )}.xlsx`
-      );
-    } catch (err) {
-      console.error(err);
-      alert("Failed to download course attendance. See console for details.");
     }
   };
 
@@ -323,7 +346,7 @@ const Attendance = () => {
 
       {/* Stats Overview (DYNAMIC) */}
       <div className="grid gap-6 md:grid-cols-4">
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-card to-card/50">
+        <Card className="flex border-0 shadow-lg bg-gradient-to-br from-card to-card/50">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
@@ -418,7 +441,7 @@ const Attendance = () => {
         </Card>
 
         {/* Attendance List */}
-        <Card className="lg:col-span-3 border-0 shadow-lg">
+        <Card className="lg:col-span-3 border-0 shadow-lg h-[70vh] flex flex-col">
           <CardHeader>
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <CardTitle>Attendance Records</CardTitle>
@@ -429,7 +452,7 @@ const Attendance = () => {
                     onClick={() => {
                       if (!courseId) {
                         alert(
-                          "Please select a course before saving attendance"
+                          "Please select a course before saving attendance",
                         );
                         return;
                       }
@@ -466,19 +489,19 @@ const Attendance = () => {
               </div>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-1 overflow-hidden">
             {loading && <p>Loading...</p>}
             {error && <p className="text-red-500">{String(error)}</p>}
 
-            <div className="space-y-4">
+            <div className="space-y-4 overflow-y-auto pr-2 max-h-full">
               {!loading && filteredStudents.length === 0 && (
                 <p className="text-muted-foreground">No students found.</p>
               )}
 
-              {paginatedStudents
+              {filteredStudents
                 .slice()
                 .sort((a: any, b: any) =>
-                  (a?.name || "").localeCompare(b?.name || "")
+                  (a?.name || "").localeCompare(b?.name || ""),
                 )
                 .map((student: any) => {
                   const currentStatus: Status = statusMap[student.unique_id];
@@ -560,7 +583,7 @@ const Attendance = () => {
       </div>
 
       {/* Pagination Controls */}
-      {filteredStudents.length > studentsPerPage && (
+      {/* {filteredStudents.length > studentsPerPage && (
         <Card className="border-0 shadow-lg">
           <CardContent className="py-4">
             <div className="flex justify-between items-center">
@@ -594,7 +617,7 @@ const Attendance = () => {
             </div>
           </CardContent>
         </Card>
-      )}
+      )} */}
 
       {/* Quick Actions (now functional for the current filtered list) */}
       <Card className="border-0 shadow-lg">
@@ -627,7 +650,7 @@ const Attendance = () => {
               <UserX className="h-6 w-6 text-destructive" />
               <span>Mark All Absent (Filtered)</span>
             </Button>
-            <Button
+            {/* <Button
               variant="outline"
               title="Download attendance of the selected session"
               className="h-auto p-4 flex flex-col items-center hover:text-black gap-2 hover:bg-accent/5 hover:border-accent"
@@ -663,8 +686,83 @@ const Attendance = () => {
                 <Download className="h-5 w-5 text-green-600" />
                 <span>Download Course Attendance</span>
               </Button>
-            </div>
+            </div> */}
           </div>
+        </CardContent>
+      </Card>
+      <Card className="border-0 shadow-lg">
+        <CardHeader>
+          <CardTitle>Download Attendance Report</CardTitle>
+        </CardHeader>
+
+        <CardContent className="flex  gap-4">
+          {/* Report Mode */}
+          <Select
+            value={reportMode}
+            onValueChange={(v) => setReportMode(v as ReportMode)}
+          >
+            <SelectTrigger className="w-[260px]">
+              <SelectValue placeholder="Select Report Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="session">Session-wise</SelectItem>
+              <SelectItem value="month">Month-wise</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Optional Session Filter */}
+          <Select
+            value={selectedSession || ""}
+            onValueChange={setSelectedSession}
+          >
+            <SelectTrigger className="w-[260px]">
+              <SelectValue placeholder="Filter by Session (Optional)" />
+            </SelectTrigger>
+            <SelectContent>{SessionOptions}</SelectContent>
+          </Select>
+
+          {/* Month selector (ONLY when month mode) */}
+          {reportMode === "month" && (
+            <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto border rounded-md p-3">
+              {monthOptions.map((m) => (
+                <label
+                  key={m.value}
+                  className="flex items-center gap-2 text-sm cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedMonths.includes(m.value)}
+                    onChange={(e) => {
+                      setSelectedMonths((prev) =>
+                        e.target.checked
+                          ? [...prev, m.value]
+                          : prev.filter((x) => x !== m.value),
+                      );
+                    }}
+                  />
+                  {m.label}
+                </label>
+              ))}
+            </div>
+          )}
+
+          {/* Download Button */}
+          <Button
+            onClick={
+              reportMode === "session"
+                ? handleDownloadSessionAttendance
+                : handleDownloadMonthAttendance
+            }
+            disabled={
+              reportMode === "session"
+                ? !selectedSession
+                : selectedMonths.length === 0
+            }
+            className="w-fit"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Download Report
+          </Button>
         </CardContent>
       </Card>
     </div>

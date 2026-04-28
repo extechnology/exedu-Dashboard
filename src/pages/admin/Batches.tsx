@@ -52,7 +52,7 @@ export default function BatchesPage() {
     ? studentProfile.filter(
         (student) =>
           student.batch_number === selectedBatch.batch_number &&
-          student.region_name === region
+          student.region_name === region,
       )
     : [];
 
@@ -61,7 +61,7 @@ export default function BatchesPage() {
       b.batch_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (b.tutor &&
         b.tutor.name?.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      b.course_name?.toLowerCase().includes(searchQuery.toLowerCase())
+      b.course_name?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   console.log(filteredStudents, "filteredStudents in batches");
@@ -132,8 +132,8 @@ export default function BatchesPage() {
     const maxWidths = Object.keys(reportData[0]).map((key) =>
       Math.max(
         key.length,
-        ...reportData.map((r) => String(r[key] || "").length)
-      )
+        ...reportData.map((r) => String(r[key] || "").length),
+      ),
     );
     worksheet["!cols"] = maxWidths.map((w) => ({ wch: w + 2 }));
 
@@ -148,7 +148,7 @@ export default function BatchesPage() {
 
   const getStudentCount = (batchNumber: string) => {
     return studentProfile.filter(
-      (student) => student.batch_number === batchNumber
+      (student) => student.batch_number === batchNumber,
     ).length;
   };
 
@@ -158,6 +158,20 @@ export default function BatchesPage() {
       .split("_")
       .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
       .join(" ");
+  }
+
+  function getBatchDurationInDays(start?: string, end?: string): string {
+    if (!start || !end) return "--";
+
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return "--";
+
+    const diffTime = endDate.getTime() - startDate.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+    return `${diffDays} day${diffDays > 1 ? "s" : ""}`;
   }
 
   return (
@@ -257,7 +271,7 @@ export default function BatchesPage() {
           .sort(
             (a, b) =>
               new Date(b.created_at).getTime() -
-              new Date(a.created_at).getTime()
+              new Date(a.created_at).getTime(),
           )
           .map((b) => (
             <div
@@ -301,7 +315,7 @@ export default function BatchesPage() {
                     <span className="font-semibold text-gray-600">
                       {b.time_start
                         ? new Date(
-                            `1970-01-01T${b.time_start}`
+                            `1970-01-01T${b.time_start}`,
                           ).toLocaleTimeString([], {
                             hour: "2-digit",
                             minute: "2-digit",
@@ -411,7 +425,7 @@ export default function BatchesPage() {
                       <p className="font-semibold text-gray-900">
                         {selectedBatch.time_start
                           ? new Date(
-                              `1970-01-01T${selectedBatch.time_start}`
+                              `1970-01-01T${selectedBatch.time_start}`,
                             ).toLocaleTimeString([], {
                               hour: "2-digit",
                               minute: "2-digit",
@@ -429,7 +443,10 @@ export default function BatchesPage() {
                     <div>
                       <p className="text-sm text-gray-600">Duration</p>
                       <p className="font-semibold text-gray-900">
-                        {selectedBatch.time_start} hrs
+                        {getBatchDurationInDays(
+                          selectedBatch.date,
+                          selectedBatch.end_date,
+                        )}
                       </p>
                     </div>
                   </div>

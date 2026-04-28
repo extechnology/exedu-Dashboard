@@ -38,7 +38,7 @@ const TutorPage: React.FC = ({ tutorId }: { tutorId: number }) => {
   const [editOpen, setEditOpen] = useState(false);
   const region = localStorage.getItem("region");
   console.log(region, "region");
-  const { session } = useSession();
+  const { sessions:session } = useSession();
   console.log(session, "session");
   console.log(tutors, "tutors");
   console.log(tutorAttendance, "tutor attendance in tutor page");
@@ -75,7 +75,7 @@ const TutorPage: React.FC = ({ tutorId }: { tutorId: number }) => {
   }, [tutors, region, searchTerm]);
 
   console.log(filteredTutors, "tutors by region");
-  const sessionByRegion = session.filter((s) => s.region_name === region);
+  const sessionByRegion = session?.filter((s) => s.region_name === region);
   console.log("🧩 TutorPage tutorId:", tutorId);
 
   const handleTutorUpdated = (updatedTutor: Tutor) => {

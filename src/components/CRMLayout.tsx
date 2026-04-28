@@ -45,15 +45,15 @@ interface CRMLayoutProps {
 const navigation = [
   { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { name: "Institutes", href: "/admin/institute", icon: Landmark },
-  { name: "Tutor", href: "/admin/tutor", icon: UserRoundPlus },
+  { name: "Courses", href: "/admin/courses", icon: BookOpen },
   { name: "Session", href: "/admin/session", icon: BookOpenCheck },
   { name: "Batch", href: "/admin/batch", icon: ClockAlert },
   { name: "Students", href: "/admin/students", icon: Users },
-  { name: "Courses", href: "/admin/courses", icon: BookOpen },
+  { name: "Tutor", href: "/admin/tutor", icon: UserRoundPlus },
   { name: "Attendance", href: "/admin/attendance", icon: Calendar },
-  { name: "Certificates", href: "/admin/certificates", icon: Award },
   { name: "Enquiries", href: "/admin/enquiries", icon: Info },
   { name: "Contacts", href: "/admin/contacts", icon: CircleUser },
+  { name: "Certificates", href: "/admin/certificates", icon: Award },
 ];
 
 export default function CRMLayout({ children }: CRMLayoutProps) {

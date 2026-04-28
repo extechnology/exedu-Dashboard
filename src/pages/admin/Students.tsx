@@ -75,7 +75,7 @@ interface NormalizedStudent {
   paid_amount: number | null;
 }
 
-type FilterType = "all" | "active" | "completed" | "pending";
+type FilterType = "all" | "active" | "permission_pending" | "payment_pending" | "course_completed" | "fee_completed";
 type StatusVariant = "Active" | "Completed" | "Pending";
 // type PaymentStatusVariant = "Completed" | "Pending" | "Failed";
 
@@ -133,8 +133,23 @@ const Students = () => {
         student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
         student.course.toLowerCase().includes(searchTerm.toLowerCase());
 
-      if (selectedFilter === "all") return matchesSearch;
-      return matchesSearch && student.status.toLowerCase() === selectedFilter;
+      if (!matchesSearch) return false;
+
+      switch (selectedFilter) {
+        case "active":
+          return student.status === "Active" && student.progress !== 100;
+        case "permission_pending":
+          return student.status === "Pending";
+        case "payment_pending":
+          return !student.payment_completed;
+        case "course_completed":
+          return student.progress === 100;
+        case "fee_completed":
+          return student.payment_completed;
+        case "all":
+        default:
+          return true;
+      }
     });
   }, [students, searchTerm, selectedFilter]);
 
@@ -172,10 +187,18 @@ const Students = () => {
     }
   }, [editFormData]);
 
-  const getFilteredCount = (filterStatus: string): number => {
+  const getFilteredCount = (filterStatus: FilterType): number => {
     if (filterStatus === "all") return students.length;
-    return students.filter((s) => s.status.toLowerCase() === filterStatus)
-      .length;
+    return students.filter((student) => {
+      switch (filterStatus) {
+        case "active": return student.status === "Active" && student.progress !== 100;
+        case "permission_pending": return student.status === "Pending";
+        case "payment_pending": return !student.payment_completed;
+        case "course_completed": return student.progress === 100;
+        case "fee_completed": return student.payment_completed;
+        default: return true;
+      }
+    }).length;
   };
 
   const handleViewStudent = (studentId: string): void => {
@@ -356,6 +379,14 @@ const Students = () => {
     return `₹${amount.toLocaleString()}`;
   };
 
+
+  const getProgressColor = (progress: number) => {
+    if (progress >= 80) return "bg-green-500";
+    if (progress >= 50) return "bg-yellow-500";
+    if (progress >= 20) return "bg-orange-500";
+    return "bg-red-500";
+  };
+
   if (loading)
     return (
       <div className="flex justify-center items-center h-64">
@@ -389,17 +420,17 @@ const Students = () => {
       {/* Search and Filters */}
       <Card className="border-0 shadow-lg rounded-2xl">
         <CardContent className="pt-6">
-          <div className="flex  flex-col sm:flex-row gap-4">
-            <div className="relative flex-1 ">
+          <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center">
+            <div className="relative w-full lg:max-w-[250px]">
               <Search className="absolute left-3 h-4 w-4 text-muted-foreground top-3" />
               <Input
-                placeholder="Search students by name, email, or course..."
+                placeholder="Search..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2 flex-1 justify-start lg:justify-end">
               <Button
                 variant={selectedFilter === "all" ? "default" : "outline"}
                 onClick={() => setSelectedFilter("all")}
@@ -415,18 +446,36 @@ const Students = () => {
                 Active ({getFilteredCount("active")})
               </Button>
               <Button
-                variant={selectedFilter === "completed" ? "default" : "outline"}
-                onClick={() => setSelectedFilter("completed")}
+                variant={selectedFilter === "permission_pending" ? "default" : "outline"}
+                onClick={() => setSelectedFilter("permission_pending")}
                 size="sm"
+                className="truncate"
               >
-                Completed ({getFilteredCount("completed")})
+                Perm. Pending ({getFilteredCount("permission_pending")})
               </Button>
               <Button
-                variant={selectedFilter === "pending" ? "default" : "outline"}
-                onClick={() => setSelectedFilter("pending")}
+                variant={selectedFilter === "payment_pending" ? "default" : "outline"}
+                onClick={() => setSelectedFilter("payment_pending")}
                 size="sm"
+                className="truncate"
               >
-                Pending ({getFilteredCount("pending")})
+                Pay. Pending ({getFilteredCount("payment_pending")})
+              </Button>
+              <Button
+                variant={selectedFilter === "course_completed" ? "default" : "outline"}
+                onClick={() => setSelectedFilter("course_completed")}
+                size="sm"
+                className="truncate"
+              >
+                Course Comp. ({getFilteredCount("course_completed")})
+              </Button>
+              <Button
+                variant={selectedFilter === "fee_completed" ? "default" : "outline"}
+                onClick={() => setSelectedFilter("fee_completed")}
+                size="sm"
+                className="truncate"
+              >
+                Fee Comp. ({getFilteredCount("fee_completed")})
               </Button>
             </div>
           </div>
@@ -468,14 +517,14 @@ const Students = () => {
                       <span
                         className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-medium ${getPaymentStatusBadge(
                           student.payment_completed,
-                          student.paid_amount
+                          student.paid_amount,
                         )}`}
                       >
                         {student.payment_completed
                           ? "Paid"
                           : student.paid_amount > 0
-                          ? "Partial"
-                          : "Unpaid"}
+                            ? "Partial"
+                            : "Unpaid"}
                       </span>
                     </div>
                   </div>
@@ -605,7 +654,7 @@ const Students = () => {
 
               <Badge
                 className={getStatusBadge(
-                  selectedStudent?.can_access_profile ? "Active" : "Pending"
+                  selectedStudent?.can_access_profile ? "Active" : "Pending",
                 )}
               >
                 {selectedStudent?.can_access_profile ? "Active" : "Pending"}
@@ -666,59 +715,6 @@ const Students = () => {
                     <p className="text-sm font-semibold flex items-center gap-2">
                       <Calendar className="h-4 w-4" />
                       {formatDate(selectedStudent.created_at)}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Education Section */}
-              <Card className="border-0 shadow-sm">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <GraduationCap className="h-5 w-5" />
-                    Educational Background
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-muted-foreground">
-                      Secondary School
-                    </label>
-                    <p className="text-sm font-semibold flex items-center gap-2">
-                      <School className="h-4 w-4" />
-                      {selectedStudent.secondary_school || "N/A"}
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-muted-foreground">
-                      Secondary Year
-                    </label>
-                    <p className="text-sm font-semibold">
-                      {selectedStudent.secondary_year || "N/A"}
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-muted-foreground">
-                      University
-                    </label>
-                    <p className="text-sm font-semibold">
-                      {selectedStudent.university || "N/A"}
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-muted-foreground">
-                      University Major
-                    </label>
-                    <p className="text-sm font-semibold">
-                      {selectedStudent.university_major || "N/A"}
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-muted-foreground">
-                      University Year
-                    </label>
-                    <p className="text-sm font-semibold">
-                      {selectedStudent.university_year || "N/A"}
                     </p>
                   </div>
                 </CardContent>
@@ -792,6 +788,79 @@ const Students = () => {
                       {selectedStudent.paid_at
                         ? formatDate(selectedStudent.paid_at)
                         : "N/A"}
+                    </p>
+                  </div>
+                  {/* Progress Section */}
+                  <div className="md:col-span-2 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium text-muted-foreground">
+                        Course Progress
+                      </label>
+                      <span className="text-sm font-semibold text-foreground">
+                        {selectedStudent.progress ?? 0}%
+                      </span>
+                    </div>
+
+                    <div className="w-full h-3 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className={`h-full transition-all duration-500 ${getProgressColor(
+                          selectedStudent.progress ?? 0,
+                        )}`}
+                        style={{ width: `${selectedStudent.progress ?? 0}%` }}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Education Section */}
+              <Card className="border-0 shadow-sm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <GraduationCap className="h-5 w-5" />
+                    Educational Background
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Secondary School
+                    </label>
+                    <p className="text-sm font-semibold flex items-center gap-2">
+                      <School className="h-4 w-4" />
+                      {selectedStudent.secondary_school || "N/A"}
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Secondary Year
+                    </label>
+                    <p className="text-sm font-semibold">
+                      {selectedStudent.secondary_year || "N/A"}
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">
+                      University
+                    </label>
+                    <p className="text-sm font-semibold">
+                      {selectedStudent.university || "N/A"}
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">
+                      University Major
+                    </label>
+                    <p className="text-sm font-semibold">
+                      {selectedStudent.university_major || "N/A"}
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">
+                      University Year
+                    </label>
+                    <p className="text-sm font-semibold">
+                      {selectedStudent.university_year || "N/A"}
                     </p>
                   </div>
                 </CardContent>
@@ -912,7 +981,7 @@ const Students = () => {
               Edit Student Profile
               <Badge
                 className={getStatusBadge(
-                  editFormData?.can_access_profile ? "Active" : "Pending"
+                  editFormData?.can_access_profile ? "Active" : "Pending",
                 )}
               >
                 {editFormData?.can_access_profile ? "Active" : "Pending"}
@@ -1052,7 +1121,7 @@ const Students = () => {
                           if (file) {
                             setImageFile(file);
                             setEditFormData((prev) =>
-                              prev ? { ...prev, profile_image: file } : null
+                              prev ? { ...prev, profile_image: file } : null,
                             );
 
                             const reader = new FileReader();
@@ -1294,7 +1363,7 @@ const Students = () => {
                       onChange={(e) =>
                         handleInputChange(
                           "paid_amount",
-                          parseFloat(e.target.value) || null
+                          parseFloat(e.target.value) || null,
                         )
                       }
                       placeholder="Enter paid amount"
@@ -1329,16 +1398,18 @@ const Students = () => {
                       type="number"
                       min="0"
                       max="100"
-                      value={editFormData.progress || 0}
-                      onChange={(e) =>
+                      value={editFormData.progress}
+                      onChange={(e) => {
+                        const value = e.target.value;
                         handleInputChange(
                           "progress",
-                          parseInt(e.target.value) || 0
-                        )
-                      }
+                          value === "" ? "" : Number(value),
+                        );
+                      }}
                       placeholder="Enter progress percentage"
                       disabled={isSaving}
                     />
+
                     <p className="text-xs text-muted-foreground">
                       Student progress (0–100%)
                     </p>

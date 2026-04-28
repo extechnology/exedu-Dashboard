@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import axiosInstance from "@/api/axiosInstance";
 import ExeduButton from "@/components/ui/exedu-button";
 import SessionModal from "@/components/ui/session-modal";
@@ -19,16 +19,14 @@ import EditSessionModal from "@/components/ui/EditSessionModal";
 import useAttendance from "@/hooks/useAttendance";
 
 const SessionPage: React.FC = () => {
-  const [sessions, setSessions] = useState<Session[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const { session } = useSession();
   const { courseOptions } = useCourseOptions();
   const [editModalOpen, setEditModalOpen] = useState(false);
   const region = localStorage.getItem("region");
-  console.log(session, "session");
+  const { sessions, loading, addSession, updateSession } = useSession();
 
   const sessionDate = selectedSession
     ? new Date(selectedSession.start_time)
@@ -44,11 +42,15 @@ const SessionPage: React.FC = () => {
 
   console.log(attendanceRecords, "attendanceRecords");
 
-  const handleSessionUpdate = (updated: Session) => {
-    setSessions((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+  const handleSave = (newSession: Session) => {
+    addSession(newSession);
   };
 
-  const sessionsWithCourseTitle = session?.filter((session) => {
+  const handleSessionUpdate = (updated: Session) => {
+    updateSession(updated);
+  };
+
+  const sessionsWithCourseTitle = sessions?.filter((session) => {
     const course = courseOptions.find(
       (c) => c.id === session.course && c?.region_name === region,
     );
@@ -73,7 +75,7 @@ const SessionPage: React.FC = () => {
           }
           return (b.id || 0) - (a.id || 0);
         });
-        setSessions(sortedSessions);
+        // setSessions(sortedSessions);
       } catch (err) {
         console.error(err);
       }
@@ -81,29 +83,23 @@ const SessionPage: React.FC = () => {
     fetchSessions();
   }, []);
 
-  const handleSave = (newSession: Session) => {
-    setSessions((prev) => [newSession, ...prev]);
-  };
-
   const handleSessionClick = (session: Session) => {
     setSelectedSession(session);
     setShowDetailModal(true);
   };
 
   // Filter sessions based on search query
-  const filteredSessions = sessions
-    .filter((session) => session?.region_name === region)
-    .filter((session) => {
-      const query = searchQuery.toLowerCase();
-      return (
-        session.title?.toLowerCase().includes(query) ||
-        session.tutor_details?.name?.toLowerCase().includes(query) ||
-        session.student_details?.some((student) =>
-          student.name?.toLowerCase().includes(query),
-        ) ||
-        session.duration?.toLowerCase().includes(query)
-      );
-    });
+  const filteredSessions = useMemo(() => {
+    return sessions
+      .filter((s) => s.region_name === region)
+      .filter((s) => {
+        const q = searchQuery.toLowerCase();
+        return (
+          s.title?.toLowerCase().includes(q) ||
+          s.tutor_details?.name?.toLowerCase().includes(q)
+        );
+      });
+  }, [sessions, searchQuery, region]);
 
   function formatCourseName(course: string | null) {
     if (!course) return "No Course";
@@ -111,6 +107,26 @@ const SessionPage: React.FC = () => {
       .split("_")
       .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
       .join(" ");
+  }
+
+  const getDurationLabel = (duration?: string) => {
+    if (!duration) return "";
+    const [h, m] = duration.split(":").map(Number);
+    return m > 0 ? `${h + m / 60} hr` : `${h} hr`;
+  };
+
+  function formatDuration(duration?: string): string {
+    if (!duration) return "";
+
+    const [hoursStr, minutesStr] = duration.split(":");
+    const hours = Number(hoursStr);
+    const minutes = Number(minutesStr);
+
+    if (minutes > 0) {
+      return `${hours + minutes / 60} hr`;
+    }
+
+    return `${hours} hr`;
   }
 
   console.log(filteredSessions, "filteredSessions");
@@ -130,6 +146,14 @@ const SessionPage: React.FC = () => {
       }),
     };
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <span className="animate-spin h-8 w-8 border-4 border-indigo-500 border-t-transparent rounded-full" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen  p-6">
@@ -211,17 +235,7 @@ const SessionPage: React.FC = () => {
                     <span className="text-sm font-medium">{time}</span>
                     <span className="mx-2 text-gray-400">•</span>
                     <span className="text-sm text-gray-600">
-                      {(() => {
-                        if (!session?.duration) return "";
-                        const [hoursStr, minutesStr] =
-                          session.duration.split(":");
-                        const hours = parseInt(hoursStr, 10);
-                        const minutes = parseInt(minutesStr, 10);
-                        if (minutes > 0) {
-                          return `${hours + minutes / 60} hr`;
-                        }
-                        return `${hours} hr`;
-                      })()}
+                      {formatDuration(session.duration)}
                     </span>
                   </div>
 
